@@ -1,0 +1,2 @@
+describe InteractorSupport do
+end
