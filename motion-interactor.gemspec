@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
 
   gem.files         = `git ls-files`.split($\)
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
-  gem.name          = "sample"
+  gem.name          = "motion-interactor"
   gem.require_paths = ["lib"]
   gem.version       = "0.0.0"
 end

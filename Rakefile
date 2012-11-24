@@ -16,7 +16,7 @@ Motion::Project::App.setup do |app|
     app.delegate_class = "SpecDelegate"
   end
 
-  app.name = "#{gem_name}_specs"
+  app.name = "#{gem_name}"
 end
 
 namespace :spec do

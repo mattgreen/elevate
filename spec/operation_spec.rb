@@ -1,12 +1,11 @@
-describe InteractorOperation do
+describe Interactor::InteractorOperation do
   before do
     @target = Target.new
-    @operation = InteractorOperation.alloc.initWithTarget(@target)
+    @operation = Interactor::InteractorOperation.alloc.initWithTarget(@target)
     @queue = NSOperationQueue.alloc.init
   end
 
   after do
-    @queue.cancelAllOperations()
     @queue.waitUntilAllOperationsAreFinished()
   end
 
