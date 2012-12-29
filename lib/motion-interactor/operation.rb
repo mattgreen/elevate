@@ -29,7 +29,21 @@ module Interactor
       super
     end
 
+    def inspect
+      details = []
+      details << "<canceled>" if @coordinator.cancelled?
+      details << "@target=#{@target.class.name}"
+
+      "#<#{self.class.name}: #{details.join(" ")}>"
+    end
+
+    def log(line)
+      puts line unless RUBYMOTION_ENV == "test"
+    end
+
     def main
+      log " START: #{inspect}"
+
       @coordinator.install()
 
       begin
@@ -42,6 +56,8 @@ module Interactor
       end
 
       @coordinator.uninstall()
+
+      log "FINISH: #{inspect}"
     end
 
     attr_reader :exception
