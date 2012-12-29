@@ -1,5 +1,5 @@
-module Interactor
-  class InteractorOperation < NSOperation
+module Arbiter
+  class ArbiterOperation < NSOperation
     def initWithTarget(target)
       if init()
         @target = target

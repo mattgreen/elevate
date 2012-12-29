@@ -1,7 +1,7 @@
-describe Interactor::DSL do
+describe Arbiter::DSL do
   describe "#on_started" do
     it "stores the provided block" do
-      i = Interactor::DSL.new do
+      i = Arbiter::DSL.new do
         on_started { |operation| puts 'hi' }
       end
 
@@ -11,7 +11,7 @@ describe Interactor::DSL do
 
   describe "#on_completed" do
     it "stores the passed block" do
-      i = Interactor::DSL.new do
+      i = Arbiter::DSL.new do
         on_completed { |o| puts 'hi' }
       end
 

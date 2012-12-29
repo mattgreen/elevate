@@ -1,10 +1,10 @@
 module Bacon
   class Context
-    include Interactor::Support
+    include Arbiter::Support
   end
 end
 
-describe Interactor::Support do
+describe Arbiter::Support do
   describe "#async" do
     it "runs the specified interactor asynchronously" do
 

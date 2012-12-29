@@ -1,4 +1,4 @@
-module Interactor
+module Arbiter
   class Callback
     def initialize(context, operation, block)
       @context = context

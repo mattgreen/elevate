@@ -1,4 +1,4 @@
-module Interactor
+module Arbiter
   module Support
     def async(target, &block)
       with_operation(target, block) do |operation|
@@ -10,15 +10,15 @@ module Interactor
 
     def queue
       Dispatch.once do
-        $interactor_queue = NSOperationQueue.alloc.init
-        $interactor_queue.maxConcurrentOperationCount = 1
+        $arbiter_queue = NSOperationQueue.alloc.init
+        $arbiter_queue.maxConcurrentOperationCount = 1
       end
 
-      $interactor_queue
+      $arbiter_queue
     end
 
     def with_operation(target, dsl_block, &block)
-      operation = InteractorOperation.alloc.initWithTarget(target)
+      operation = ArbiterOperation.alloc.initWithTarget(target)
 
       if dsl_block
         dsl = DSL.new(&dsl_block)

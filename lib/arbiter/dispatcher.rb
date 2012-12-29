@@ -1,4 +1,4 @@
-module Interactor
+module Arbiter
   class Dispatcher
     def initialize
       @on_finished = nil

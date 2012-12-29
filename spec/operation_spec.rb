@@ -1,7 +1,7 @@
-describe Interactor::InteractorOperation do
+describe Arbiter::ArbiterOperation do
   before do
     @target = Target.new
-    @operation = Interactor::InteractorOperation.alloc.initWithTarget(@target)
+    @operation = Arbiter::ArbiterOperation.alloc.initWithTarget(@target)
     @queue = NSOperationQueue.alloc.init
   end
 

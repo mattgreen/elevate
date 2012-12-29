@@ -1,4 +1,4 @@
-module Interactor
+module Arbiter
   class DSL
     def initialize(&block)
       instance_eval(&block)

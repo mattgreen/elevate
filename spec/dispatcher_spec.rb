@@ -1,8 +1,8 @@
-describe Interactor::Dispatcher do
+describe Arbiter::Dispatcher do
   DELAY = 0.2
 
   before do
-    @dispatcher = Interactor::Dispatcher.new
+    @dispatcher = Arbiter::Dispatcher.new
   end
 
   describe "#on_started=" do
