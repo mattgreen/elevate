@@ -1,8 +1,4 @@
 class IOCoordinator
-  def self.for_thread
-    Thread.current[:io_coordinator]
-  end
-
   def initialize
     @mutex = Mutex.new
     @blocking_operation = nil
@@ -32,7 +28,7 @@ class IOCoordinator
     Thread.current[:io_coordinator] = self
   end
 
-  def signal_blocking(operation)
+  def signal_blocked(operation)
     check_for_cancellation
 
     @mutex.synchronize do
