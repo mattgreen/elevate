@@ -1,5 +1,6 @@
 class Target
   attr_reader   :called
+  attr_reader   :io_coordinator
   attr_accessor :exception
   attr_accessor :result
 
@@ -9,6 +10,8 @@ class Target
   end
 
   def execute
+    @io_coordinator = Thread.current[:io_coordinator]
+
     @called += 1
 
     if @exception

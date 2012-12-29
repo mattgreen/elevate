@@ -3,6 +3,7 @@ module Interactor
     def initWithTarget(target)
       if init()
         @target = target
+        @coordinator = IOCoordinator.new
         @dispatcher = Dispatcher.new
 
         setCompletionBlock(lambda do
@@ -16,17 +17,31 @@ module Interactor
       self
     end
 
+    def cancel
+      @coordinator.cancel()
+
+      super
+    end
+
     def dealloc
-      puts 'dealloc!'
+      #puts 'dealloc!'
 
       super
     end
 
     def main
-      @result = @target.execute
+      @coordinator.install()
 
-    rescue => e
-      @exception = e
+      begin
+        unless @coordinator.cancelled?
+          @result = @target.execute
+        end
+
+      rescue => e
+        @exception = e
+      end
+
+      @coordinator.uninstall()
     end
 
     attr_reader :exception

@@ -13,6 +13,32 @@ describe Interactor::InteractorOperation do
     @operation.class.ancestors.should.include NSOperation
   end
 
+  describe "#on_finished" do
+    it "invokes it after #on_started" do
+      @value = []
+      @operation.on_started  = lambda do
+        if @value == []
+          @value << 1
+        end
+      end
+
+      @operation.on_finished = lambda do
+        if @value == [1]
+          @value << 2
+        end
+
+        resume
+      end
+
+      @queue.addOperation(@operation)
+      @operation.waitUntilFinished()
+
+      wait_max 1.0 do
+        @value.should == [1,2]
+      end
+    end
+  end
+
   describe "#exception" do
     describe "when no exception is raised" do
       it "returns nil" do
@@ -53,6 +79,15 @@ describe Interactor::InteractorOperation do
         @operation.waitUntilFinished()
 
         @target.called.should == 0
+      end
+    end
+
+    describe "when the operation is running" do
+      it "allows IO to be cancelled" do
+        @queue.addOperation(@operation)
+        @operation.waitUntilFinished()
+
+        @target.io_coordinator.should.not.be.nil
       end
     end
   end
