@@ -1,8 +1,8 @@
-describe Arbiter::Dispatcher do
+describe Masamune::Dispatcher do
   DELAY = 0.2
 
   before do
-    @dispatcher = Arbiter::Dispatcher.new
+    @dispatcher = Masamune::Dispatcher.new
   end
 
   describe "#on_started=" do

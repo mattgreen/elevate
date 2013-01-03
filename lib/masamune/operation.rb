@@ -1,5 +1,5 @@
-module Arbiter
-  class ArbiterOperation < NSOperation
+module Masamune
+  class MasamuneOperation < NSOperation
     def initWithTarget(target)
       if init()
         @target = target

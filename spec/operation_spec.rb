@@ -1,7 +1,7 @@
-describe Arbiter::ArbiterOperation do
+describe Masamune::MasamuneOperation do
   before do
     @target = Target.new
-    @operation = Arbiter::ArbiterOperation.alloc.initWithTarget(@target)
+    @operation = Masamune::MasamuneOperation.alloc.initWithTarget(@target)
     @queue = NSOperationQueue.alloc.init
   end
 

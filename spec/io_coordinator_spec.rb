@@ -1,6 +1,6 @@
-describe IOCoordinator do
+describe Masamune::IOCoordinator do
   before do
-    @coordinator = IOCoordinator.new
+    @coordinator = Masamune::IOCoordinator.new
   end
 
   it "is not cancelled" do
@@ -15,18 +15,20 @@ describe IOCoordinator do
     end
   end
 
-  describe "#signal_blocked" do
-    describe "when IO has not been cancelled" do
-      it "does not raise CancelledError" do
-        lambda { @coordinator.signal_blocked(42) }.should.not.raise
+  [:signal_blocked, :signal_unblocked].each do |method|
+    describe method.to_s do
+      describe "when IO has not been cancelled" do
+        it "does not raise CancelledError" do
+          lambda { @coordinator.send(method, 42) }.should.not.raise
+        end
       end
-    end
 
-    describe "when IO was cancelled" do
-      it "raises CancelledError" do
-        @coordinator.cancel()
+      describe "when IO was cancelled" do
+        it "raises CancelledError" do
+          @coordinator.cancel()
 
-        lambda { @coordinator.signal_blocked(42) }.should.raise(CancelledError)
+          lambda { @coordinator.send(method, 42) }.should.raise(Masamune::CancelledError)
+        end
       end
     end
   end

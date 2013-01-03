@@ -1,10 +1,10 @@
 module Bacon
   class Context
-    include Arbiter::Support
+    include Masamune
   end
 end
 
-describe Arbiter::Support do
+describe Masamune do
   describe "#async" do
     it "runs the specified interactor asynchronously" do
 

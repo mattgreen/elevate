@@ -1,4 +1,4 @@
-module Arbiter
+module Masamune
   class Dispatcher
     def initialize
       @on_finished = nil

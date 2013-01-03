@@ -1,4 +1,4 @@
-module Arbiter
+module Masamune
   class Callback
     def initialize(context, operation, block)
       @context = context

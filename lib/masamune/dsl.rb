@@ -1,4 +1,4 @@
-module Arbiter
+module Masamune
   class DSL
     def initialize(&block)
       instance_eval(&block)
