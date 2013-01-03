@@ -15,17 +15,23 @@ describe Masamune::MasamuneOperation do
 
   describe "#on_finished" do
     it "invokes it after #on_started" do
+      @lock = NSLock.alloc.init
       @value = []
+
       @operation.on_started  = lambda do
+        @lock.lock()
         if @value == []
           @value << 1
         end
+        @lock.unlock()
       end
 
       @operation.on_finished = lambda do
+        @lock.lock()
         if @value == [1]
           @value << 2
         end
+        @lock.unlock()
 
         resume
       end
@@ -34,7 +40,9 @@ describe Masamune::MasamuneOperation do
       @operation.waitUntilFinished()
 
       wait_max 1.0 do
+        @lock.lock()
         @value.should == [1,2]
+        @lock.unlock()
       end
     end
   end
