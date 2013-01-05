@@ -1,7 +1,24 @@
 module Masamune
   class IOCoordinator
+    def self.register_blocking(operation, &block)
+      coordinator = Thread.current[:io_coordinator]
+
+      if coordinator
+        coordinator.signal_blocked(operation)
+      end
+
+      begin
+        yield
+
+      ensure
+        if coordinator
+          coordinator.signal_unblocked(operation)
+        end
+      end
+    end
+
     def initialize
-      @mutex = Mutex.new
+      @lock = NSLock.alloc.init
       @blocking_operation = nil
       @cancelled = false
     end
@@ -9,10 +26,10 @@ module Masamune
     def cancel
       blocking_operation = nil
 
-      @mutex.synchronize do
-        @cancelled = true
-        blocking_operation = @blocking_operation
-      end
+      @lock.lock()
+      @cancelled = true
+      blocking_operation = @blocking_operation
+      @lock.unlock()
 
       if blocking_operation
         blocking_operation.cancel()
@@ -20,9 +37,13 @@ module Masamune
     end
 
     def cancelled?
-      @mutex.synchronize do
-        @cancelled
-      end
+      cancelled = nil
+
+      @lock.lock()
+      cancelled = @cancelled
+      @lock.unlock()
+
+      cancelled
     end
 
     def install
@@ -32,15 +53,15 @@ module Masamune
     def signal_blocked(operation)
       check_for_cancellation
 
-      @mutex.synchronize do
-        @blocking_operation = operation
-      end
+      @lock.lock()
+      @blocking_operation = operation
+      @lock.unlock()
     end
 
     def signal_unblocked(operation)
-      @mutex.synchronize do
-        @blocking_operation = nil
-      end
+      @lock.lock()
+      @blocking_operation = nil
+      @lock.unlock()
 
       check_for_cancellation
     end
@@ -52,12 +73,7 @@ module Masamune
     private
 
     def check_for_cancellation
-      cancelled = false
-      @mutex.synchronize do
-        cancelled = @cancelled
-      end
-
-      raise CancelledError if cancelled
+      raise CancelledError if cancelled?
     end
   end
 

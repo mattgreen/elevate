@@ -27,7 +27,7 @@ describe Masamune::IOCoordinator do
         it "raises CancelledError" do
           @coordinator.cancel()
 
-          lambda { @coordinator.send(method, 42) }.should.raise(Masamune::CancelledError)
+          lambda { @coordinator.send(method, "hello") }.should.raise(Masamune::CancelledError)
         end
       end
     end

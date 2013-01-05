@@ -1,6 +1,6 @@
 module Bacon
   class Context
-    include Masamune
+    include ::Masamune
   end
 end
 

@@ -37,7 +37,6 @@ describe Masamune::MasamuneOperation do
       end
 
       @queue.addOperation(@operation)
-      @operation.waitUntilFinished()
 
       wait_max 1.0 do
         @lock.lock()

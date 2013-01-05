@@ -2,7 +2,6 @@ $:.unshift("/Library/RubyMotion/lib")
 require 'motion/project'
 
 require 'bundler'
-Bundler.setup
 Bundler.require
 
 Motion::Project::App.setup do |app|
@@ -10,7 +9,7 @@ Motion::Project::App.setup do |app|
   gemspec = Dir.glob(File.join(base_dir, "*.gemspec")).first
   gem_name = File.basename(gemspec).gsub("\.gemspec", "")
 
-  app.files = Dir.glob(File.join(base_dir, "app/*.rb"))
+  #app.files += Dir.glob(File.join(base_dir, "app/*.rb"))
   app.files += Dir.glob(File.join(base_dir, "lib/#{gem_name}/**/*.rb"))
 
   app.name = "#{gem_name}"
