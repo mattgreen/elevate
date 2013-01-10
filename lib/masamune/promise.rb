@@ -13,13 +13,13 @@ module Masamune
 
       @lock.lockWhenCondition(FULFILLED)
       result = @result
-      @lock.unlockWithCondition(OUTSTANDING)
+      @lock.unlockWithCondition(FULFILLED)
 
       result
     end
 
     def set(result)
-      @lock.lock()
+      @lock.lockWhenCondition(OUTSTANDING)
       @result = result
       @lock.unlockWithCondition(FULFILLED)
     end
