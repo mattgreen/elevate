@@ -57,7 +57,7 @@ describe Elevate::HTTP::HTTPRequest do
     end
 
     it "includes the headers in the request" do
-      @response.body.should.be
+      @response.body.should.not.be.nil
     end
   end
 
