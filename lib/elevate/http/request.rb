@@ -3,6 +3,7 @@ module HTTP
   # TODO: redirects
   class HTTPRequest
     METHODS = [:get, :post, :put, :delete, :patch, :head, :options].freeze
+    QUEUE = NSOperationQueue.alloc.init
 
     def initialize(method, url, options={})
       raise ArgumentError, "invalid HTTP method" unless METHODS.include? method.downcase
@@ -32,7 +33,6 @@ module HTTP
       @response = HTTPResponse.new
 
       @connection = nil
-      @queue = nil
       @promise = Promise.new
     end
 
@@ -53,8 +53,7 @@ module HTTP
 
     def start
       @connection = NSURLConnection.alloc.initWithRequest(@request, delegate:self, startImmediately:false)
-      @queue = NSOperationQueue.alloc.init
-      @connection.setDelegateQueue(@queue)
+      @connection.setDelegateQueue(QUEUE)
       @connection.start()
     end
 
