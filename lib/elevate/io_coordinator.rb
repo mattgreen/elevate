@@ -1,20 +1,7 @@
 module Elevate
   class IOCoordinator
-    def self.register_blocking(operation, &block)
-      coordinator = Thread.current[:io_coordinator]
-
-      if coordinator
-        coordinator.signal_blocked(operation)
-      end
-
-      begin
-        yield
-
-      ensure
-        if coordinator
-          coordinator.signal_unblocked(operation)
-        end
-      end
+    def self.for_thread
+      Thread.current[:io_coordinator]
     end
 
     def initialize
