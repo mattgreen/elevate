@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   class Callback
     def initialize(context, operation, block)
       @context = context

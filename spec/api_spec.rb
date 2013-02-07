@@ -1,10 +1,10 @@
 module Bacon
   class Context
-    include ::Masamune
+    include ::Elevate
   end
 end
 
-describe Masamune do
+describe Elevate do
   describe "#async" do
     it "runs the specified interactor asynchronously" do
 

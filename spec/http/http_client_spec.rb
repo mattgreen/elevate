@@ -1,4 +1,4 @@
-describe Masamune::HTTP::HTTPClient do
+describe Elevate::HTTP::HTTPClient do
   extend WebStub::SpecHelpers
 
   before do
@@ -8,7 +8,7 @@ describe Masamune::HTTP::HTTPClient do
     @path = "/resource/action"
     @url = @base_url + @path
 
-    @client = Masamune::HTTP::HTTPClient.new(@base_url)
+    @client = Elevate::HTTP::HTTPClient.new(@base_url)
   end
 
   it "issues requests to the complete URL" do
@@ -18,9 +18,9 @@ describe Masamune::HTTP::HTTPClient do
   end
 
   it "appends query parameters to the URL" do
-    stub_request(:get, @url + "?q=help").to_return(json: { result: 0 })
+    stub_request(:get, @url + "?q=help&page=2").to_return(json: { result: 0 })
 
-    @client.get(@path, q: "help").body.should == { "result" => 0 }
+    @client.get(@path, q: "help", page: 2).body.should == { "result" => 0 }
   end
 
   it "decodes JSON responses" do

@@ -1,5 +1,6 @@
-module Masamune
+module Elevate
 module HTTP
+  # TODO: redirects
   class HTTPRequest
     METHODS = [:get, :post, :put, :delete, :patch, :head, :options].freeze
 
@@ -8,11 +9,26 @@ module HTTP
       raise ArgumentError, "invalid URL" unless url.start_with? "http"
       raise ArgumentError, "invalid body type; must be NSData" if options[:body] && ! options[:body].is_a?(NSData)
 
+      unless options.fetch(:query, {}).empty?
+        url += "?" + URI.encode_query(options[:query])
+      end
+
       @request = NSMutableURLRequest.alloc.init
       @request.CachePolicy = NSURLRequestReloadIgnoringLocalCacheData
       @request.HTTPBody = options[:body]
       @request.HTTPMethod = method
       @request.URL = NSURL.URLWithString(url)
+
+      headers = options.fetch(:headers, {})
+
+      if credentials = options[:credentials]
+        headers["Authorization"] = get_authorization_header(credentials)
+      end
+
+      headers.each do |key, value|
+        @request.setValue(value.to_s, forHTTPHeaderField:key.to_s)
+      end
+
       @response = HTTPResponse.new
 
       @connection = nil
@@ -71,6 +87,10 @@ module HTTP
 
       @promise.set(@response)
     end
+
+    def get_authorization_header(credentials)
+      "Basic " + Base64.encode("#{credentials[:username]}:#{credentials[:password]}")
+    end    
   end
 end
 end

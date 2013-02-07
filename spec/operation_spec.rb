@@ -1,7 +1,7 @@
-describe Masamune::MasamuneOperation do
+describe Elevate::ElevateOperation do
   before do
     @target = Target.new
-    @operation = Masamune::MasamuneOperation.alloc.initWithTarget(@target)
+    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target)
     @queue = NSOperationQueue.alloc.init
   end
 

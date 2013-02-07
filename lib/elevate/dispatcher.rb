@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   class Dispatcher
     def initialize
       @on_finished = nil

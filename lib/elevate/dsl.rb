@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   class DSL
     def initialize(&block)
       instance_eval(&block)

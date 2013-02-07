@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
 module HTTP
   class HTTPResponse
     def initialize

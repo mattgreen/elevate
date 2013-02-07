@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
 module HTTP
   module URI
     def self.encode_query(hash)

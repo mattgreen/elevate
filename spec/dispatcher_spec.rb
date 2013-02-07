@@ -1,8 +1,8 @@
-describe Masamune::Dispatcher do
+describe Elevate::Dispatcher do
   DELAY = 0.2
 
   before do
-    @dispatcher = Masamune::Dispatcher.new
+    @dispatcher = Elevate::Dispatcher.new
   end
 
   describe "#on_started=" do

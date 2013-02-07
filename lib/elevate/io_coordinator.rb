@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   class IOCoordinator
     def self.register_blocking(operation, &block)
       coordinator = Thread.current[:io_coordinator]

@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   class Promise
     OUTSTANDING = 0
     FULFILLED = 1

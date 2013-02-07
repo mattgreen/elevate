@@ -1,5 +1,5 @@
-module Masamune
-  class MasamuneOperation < NSOperation
+module Elevate
+  class ElevateOperation < NSOperation
     def initWithTarget(target)
       if init()
         @target = target

@@ -1,6 +1,6 @@
-describe Masamune::IOCoordinator do
+describe Elevate::IOCoordinator do
   before do
-    @coordinator = Masamune::IOCoordinator.new
+    @coordinator = Elevate::IOCoordinator.new
   end
 
   it "is not cancelled" do
@@ -27,7 +27,7 @@ describe Masamune::IOCoordinator do
         it "raises CancelledError" do
           @coordinator.cancel()
 
-          lambda { @coordinator.send(method, "hello") }.should.raise(Masamune::CancelledError)
+          lambda { @coordinator.send(method, "hello") }.should.raise(Elevate::CancelledError)
         end
       end
     end

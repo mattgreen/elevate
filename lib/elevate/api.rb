@@ -1,4 +1,4 @@
-module Masamune
+module Elevate
   def async(target, &block)
     with_operation(target, block) do |operation|
       queue.addOperation(operation)
@@ -9,15 +9,15 @@ module Masamune
 
   def queue
     Dispatch.once do
-      $masamune_queue = NSOperationQueue.alloc.init
-      $masamune_queue.maxConcurrentOperationCount = 1
+      $elevate_queue = NSOperationQueue.alloc.init
+      $elevate_queue.maxConcurrentOperationCount = 1
     end
 
-    $masamune_queue
+    $elevate_queue
   end
 
   def with_operation(target, dsl_block, &block)
-    operation = MasamuneOperation.alloc.initWithTarget(target)
+    operation = ElevateOperation.alloc.initWithTarget(target)
 
     if dsl_block
       dsl = DSL.new(&dsl_block)
