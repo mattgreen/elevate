@@ -2,6 +2,8 @@ Elevate
 ======
 How do we convey the intent of our application?
 
+**Status:** beta quality. Feedback desired!
+
 Background
 -----------
 iOS applications employ the MVC architecture to delineate responsibilities:
