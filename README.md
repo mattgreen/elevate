@@ -4,6 +4,9 @@ How do we convey the intent of our application?
 
 **Status:** beta quality. Feedback desired!
 
+ [![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate)
+
+
 Background
 -----------
 iOS applications employ the MVC architecture to delineate responsibilities:
