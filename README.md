@@ -101,10 +101,6 @@ class ArtistsViewController < UITableViewController
 end
 ```
 
-Requirements
-------------
-* **iOS 6.x and higher** (due to `setDelegateQueue` being [horribly broken](http://openradar.appspot.com/10529053) on iOS 5.x.)
-
 Installation
 ------------
 Update your Gemfile:
