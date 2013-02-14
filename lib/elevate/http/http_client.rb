@@ -48,9 +48,10 @@ module HTTP
       coordinator = IOCoordinator.for_thread
 
       coordinator.signal_blocked(request) if coordinator
-      response = JSONHTTPResponse.new(request.response)
+      response = request.response
       coordinator.signal_unblocked(request) if coordinator
 
+      response = JSONHTTPResponse.new(request.response)
       if response.error == nil && block_given?
         result = yield response.body
         puts result.inspect
