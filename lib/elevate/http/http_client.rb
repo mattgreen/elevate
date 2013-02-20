@@ -43,6 +43,28 @@ module HTTP
         options[:headers]["Content-Type"] = "application/json"
       end
 
+      response = send_request(method, url, options)
+      raise_error(response.error) if response.error
+
+      response = JSONHTTPResponse.new(response)
+      if response.error == nil && block_given?
+        result = yield response.body
+
+        result
+      else
+        response
+      end
+    end
+
+    def raise_error(error)
+      if error.code == -1009
+        raise OfflineError, error
+      else
+        raise RequestError, response.error
+      end
+    end
+
+    def send_request(method, url, options)
       request = HTTPRequest.new(method, url, options)
 
       coordinator = IOCoordinator.for_thread
@@ -51,15 +73,7 @@ module HTTP
       response = request.response
       coordinator.signal_unblocked(request) if coordinator
 
-      response = JSONHTTPResponse.new(request.response)
-      if response.error == nil && block_given?
-        result = yield response.body
-        puts result.inspect
-
-        result
-      else
-        response
-      end
+      response
     end
 
     def url_for(path)

@@ -8,7 +8,14 @@ module Elevate
       @result = nil
     end
 
-    def get
+    def fulfill(result)
+      if @lock.tryLockWhenCondition(OUTSTANDING)
+        @result = result
+        @lock.unlockWithCondition(FULFILLED)
+      end
+    end
+
+    def value
       result = nil
 
       @lock.lockWhenCondition(FULFILLED)
@@ -16,12 +23,6 @@ module Elevate
       @lock.unlockWithCondition(FULFILLED)
 
       result
-    end
-
-    def set(result)
-      @lock.lockWhenCondition(OUTSTANDING)
-      @result = result
-      @lock.unlockWithCondition(FULFILLED)
     end
   end
 end

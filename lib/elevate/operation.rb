@@ -51,7 +51,7 @@ module Elevate
           @result = @target.execute
         end
 
-      rescue => e
+      rescue Exception => e
         @exception = e
       end
 

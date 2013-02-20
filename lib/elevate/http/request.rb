@@ -39,7 +39,7 @@ module HTTP
       return unless started?
 
       NetworkThread.cancel(@connection)
-      @promise.set(nil)
+      @promise.fulfill(nil)
     end
 
     def response
@@ -47,7 +47,7 @@ module HTTP
         start()
       end
 
-      @promise.get()
+      @promise.value
     end
 
     def start
@@ -72,18 +72,18 @@ module HTTP
     end
 
     def connection(connection, didFailWithError: error)
-      puts "ERROR: #{error.localizedDescription}"
+      puts "ERROR: #{error.localizedDescription} (code: #{error.code})"
 
       @response.error = error
       @response.freeze
 
-      @promise.set(@response)
+      @promise.fulfill(@response)
     end
 
     def connectionDidFinishLoading(connection)
       @response.freeze
 
-      @promise.set(@response)
+      @promise.fulfill(@response)
     end
 
     def get_authorization_header(credentials)
