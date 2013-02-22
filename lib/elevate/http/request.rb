@@ -39,6 +39,8 @@ module HTTP
       return unless started?
 
       NetworkThread.cancel(@connection)
+      ActivityIndicator.instance.hide
+
       @promise.fulfill(nil)
     end
 
@@ -54,6 +56,7 @@ module HTTP
       @connection = NSURLConnection.alloc.initWithRequest(@request, delegate:self, startImmediately:false)
 
       NetworkThread.start(@connection)
+      ActivityIndicator.instance.show
     end
 
     def started?
@@ -77,18 +80,22 @@ module HTTP
       @response.error = error
       @response.freeze
 
+      ActivityIndicator.instance.hide
+
       @promise.fulfill(@response)
     end
 
     def connectionDidFinishLoading(connection)
       @response.freeze
 
+      ActivityIndicator.instance.hide
+
       @promise.fulfill(@response)
     end
 
     def get_authorization_header(credentials)
       "Basic " + Base64.encode("#{credentials[:username]}:#{credentials[:password]}")
-    end    
+    end
   end
 end
 end
