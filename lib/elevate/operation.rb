@@ -1,16 +1,20 @@
 module Elevate
   class ElevateOperation < NSOperation
-    def initWithTarget(target)
+    def initWithTarget(target, context: context)
       if init()
-        @target = target
         @coordinator = IOCoordinator.new
-        @dispatcher = Dispatcher.new
+        @target = target
+        @context = context
+        @finished_callback  = lambda { |*args| }
 
         setCompletionBlock(lambda do
-          @target = nil
+          @finished_callback.call unless isCancelled
 
-          @dispatcher.invoke_finished_callback() unless isCancelled()
-          @dispatcher.dispose()
+          Dispatch::Queue.main.sync do
+            @target = nil
+            @context = nil
+            @finished_callback = nil
+          end
         end)
       end
 
@@ -18,13 +22,7 @@ module Elevate
     end
 
     def cancel
-      @coordinator.cancel()
-
-      super
-    end
-
-    def dealloc
-      #puts 'dealloc!'
+      @coordinator.cancel
 
       super
     end
@@ -44,18 +42,22 @@ module Elevate
     def main
       log " START: #{inspect}"
 
-      @coordinator.install()
+      @coordinator.install
 
       begin
         unless @coordinator.cancelled?
-          @result = @target.execute
+          if @target.is_a?(Proc)
+            @result = @context.instance_eval(&@target)
+          else
+            @result = @target.call
+          end
         end
 
       rescue Exception => e
         @exception = e
       end
 
-      @coordinator.uninstall()
+      @coordinator.uninstall
 
       log "FINISH: #{inspect}"
     end
@@ -64,11 +66,17 @@ module Elevate
     attr_reader :result
 
     def on_started=(callback)
-      @dispatcher.on_started = callback
+      started_callback = Callback.new(@context, self, callback)
+      started_callback.retain
+
+      Dispatch::Queue.main.async do
+        started_callback.call unless isCancelled
+        started_callback.release
+      end
     end
 
     def on_finished=(callback)
-      @dispatcher.on_finished = callback
+      @finished_callback = Callback.new(@context, self, callback)
     end
   end
 end

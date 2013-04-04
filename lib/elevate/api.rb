@@ -1,6 +1,6 @@
 module Elevate
-  def async(target, &block)
-    with_operation(target, block) do |operation|
+  def async(&block)
+    with_operation(block) do |operation|
       queue.addOperation(operation)
     end
   end
@@ -16,15 +16,12 @@ module Elevate
     $elevate_queue
   end
 
-  def with_operation(target, dsl_block, &block)
-    operation = ElevateOperation.alloc.initWithTarget(target)
+  def with_operation(dsl_block, &block)
+    dsl = DSL.new(&dsl_block)
 
-    if dsl_block
-      dsl = DSL.new(&dsl_block)
-
-      operation.on_started  = Callback.new(self, operation, dsl.started_callback)  if dsl.started_callback
-      operation.on_finished = Callback.new(self, operation, dsl.finished_callback) if dsl.finished_callback
-    end
+    operation = ElevateOperation.alloc.initWithTarget(dsl.task_callback, context: self)
+    operation.on_started  = dsl.started_callback  if dsl.started_callback
+    operation.on_finished = dsl.finished_callback if dsl.finished_callback
 
     yield operation
 

@@ -6,6 +6,11 @@ module Elevate
 
     attr_reader :started_callback
     attr_reader :finished_callback
+    attr_reader :task_callback
+
+    def task(&block)
+      @task_callback = block
+    end
 
     def on_started(&block)
       @started_callback = block

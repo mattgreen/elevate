@@ -6,11 +6,15 @@ end
 
 describe Elevate do
   describe "#async" do
-    it "runs the specified interactor asynchronously" do
+    it "runs the specified task asynchronously" do
 
-      async Target.new() do
-        on_completed do |operation|
+      async do
+        task do
+          sleep 0.3
           @called = true
+        end
+
+        on_completed do |operation|
           resume
         end
       end

@@ -9,7 +9,7 @@ class Target
     @result = true
   end
 
-  def execute
+  def call
     @io_coordinator = Thread.current[:io_coordinator]
 
     @called += 1

@@ -1,7 +1,7 @@
 describe Elevate::ElevateOperation do
   before do
     @target = Target.new
-    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target)
+    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, context: self)
     @queue = NSOperationQueue.alloc.init
   end
 
@@ -18,7 +18,7 @@ describe Elevate::ElevateOperation do
       @lock = NSLock.alloc.init
       @value = []
 
-      @operation.on_started  = lambda do
+      @operation.on_started = lambda do |operation|
         @lock.lock()
         if @value == []
           @value << 1
@@ -26,7 +26,7 @@ describe Elevate::ElevateOperation do
         @lock.unlock()
       end
 
-      @operation.on_finished = lambda do
+      @operation.on_finished = lambda do |operation|
         @lock.lock()
         if @value == [1]
           @value << 2
