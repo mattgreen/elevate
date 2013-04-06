@@ -1,18 +1,30 @@
 module Elevate
+  class Context
+    def initialize(args, &block)
+      metaclass = class << self; self; end
+      metaclass.send(:define_method, :execute, &block)
+
+      args.each do |key, value|
+        metaclass.send(:define_method, key) { value }
+      end
+    end
+  end
+
   class ElevateOperation < NSOperation
-    def initWithTarget(target, context: context)
+    def initWithTarget(target, args:args)
       if init()
         @coordinator = IOCoordinator.new
         @target = target
-        @context = context
-        @finished_callback  = lambda { |*args| }
+        @context = Context.new(args, &target)
+        @finished_callback = nil
 
         setCompletionBlock(lambda do
-          @finished_callback.call unless isCancelled
+          if @finished_callback
+            @finished_callback.call(@result, @exception) unless isCancelled
+          end
 
           Dispatch::Queue.main.sync do
             @target = nil
-            @context = nil
             @finished_callback = nil
           end
         end)
@@ -46,11 +58,7 @@ module Elevate
 
       begin
         unless @coordinator.cancelled?
-          if @target.is_a?(Proc)
-            @result = @context.instance_eval(&@target)
-          else
-            @result = @target.call
-          end
+          @result = @context.execute
         end
 
       rescue Exception => e
@@ -66,7 +74,7 @@ module Elevate
     attr_reader :result
 
     def on_started=(callback)
-      started_callback = Callback.new(@context, self, callback)
+      started_callback = callback
       started_callback.retain
 
       Dispatch::Queue.main.async do
@@ -76,7 +84,7 @@ module Elevate
     end
 
     def on_finished=(callback)
-      @finished_callback = Callback.new(@context, self, callback)
+      @finished_callback = callback
     end
   end
 end

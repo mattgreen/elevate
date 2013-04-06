@@ -1,18 +1,22 @@
 module Elevate
   class Callback
-    def initialize(context, operation, block)
-      @context = context
-      @operation = operation
+    def initialize(controller, block)
+      @controller = controller
       @block = block
     end
 
-    def call
-      unless NSThread.isMainThread
-        self.performSelectorOnMainThread(:call, withObject: self, waitUntilDone: true)
-        return
+    def call(*args)
+      if NSThread.isMainThread
+        invoke(*args)
+      else
+        Dispatch::Queue.main.sync { invoke(*args) }
       end
+    end
 
-      @context.instance_exec(@operation, &@block)
+    private
+
+    def invoke(*args)
+      @controller.instance_exec(*args, &@block)
     end
   end
 end
