@@ -4,7 +4,7 @@ PATH
     elevate (0.4.0)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     coderay (1.0.8)
     guard (1.6.2)

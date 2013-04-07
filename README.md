@@ -1,111 +1,77 @@
-Elevate
+Elevate  [![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate)
 ======
-How do we convey the intent of our application?
 
-**Status:** beta quality. Feedback desired!
+Stop scattering your domain logic across your view controller. Consolidate it to a single conceptual unit with Elevate.
 
- [![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate)
+Example
+-------
 
+```ruby
+@login_task = async username: username.text, password: password.text do
+  task do
+    # This block runs on a background thread.
+    #
+    # The @username and @password instance variables correspond to the args
+    # passed into async. API is a thin wrapper class over Elevate::HTTP,
+    # which blocks until the request returns, yet can be interrupted.
+    credentials = API.login(@username, @password)
+    if credentials
+      UserRegistration.store(credentials.username, credentials.token)
+    end
+
+    # Return value of block is passed back to on_completed
+    credentials != nil
+  end
+
+  on_started do
+    # This block runs on the UI thread after the operation has been queued.
+    SVProgressHUD.showWithStatus("Logging In...")
+  end
+
+  on_completed do |result, exception|
+    # This block runs on the UI thread after the task block has finished.
+    SVProgressHUD.dismiss
+
+    if exception == nil
+      if result
+        alert("Logged in successfully!")
+      else
+        alert("Invalid username/password!")
+      end
+    else
+      alert(exception)
+    end
+  end
+end
+```
 
 Background
 -----------
-iOS applications employ the MVC architecture to delineate responsibilities:
+Many iOS apps have fairly simple domain logic that is obscured by several programming 'taxes':
 
-* Models represent the entities important to our app
-* Views display those entities
-* Controllers react to user input, adjusting the model
+* UI management
+* asynchronous network requests
+* I/O-heavy operations, such as storing large datasets to disk
 
-However, iOS view controllers seem to attract complexity: not only do they coordinate models, but they also coordinate boundary objects (persistence mechanisms, backend APIs) and view-related concerns. This conflation of responsibilities shrouds the domain logic (that is, what your application does), making it harder to reason about and test. Pure model-related logic can be tested easily on its own, the difficulty arises when models interact with boundaries. Asynchronous behavior only makes it worse.
+These are necessary to ensure a good user experience, but they splinter your domain logic (that is, what your application does) through your view controller. Gross.
 
-Elevate posits that the essence of your system are the use cases. They constitute the unique value that your application delivers. Their correctness is too important to be mixed in with presentation-level concerns. This results in a bit more code (one class per use case), but it allows the view controller to be relentlessly focused on view-related concerns.
+Elevate is a mini task queue for your iOS app, much like Resque or Sidekiq. Rather than defining part of an operation to run on the UI thread, and a CPU-intensive portion on a background thread, Elevate is designed so you run the *entire* operation in the background, and receive notifications when it starts and finishes. This has a nice side effect of consolidating all the interaction for a particular task to one place. The UI code is cleanly isolated from the non-UI code. When your tasks become complex, you can elect to extract them out to a service object.
 
-Extracting use cases into their own class has several benefits:
+In a sense, Elevate is almost a control-flow library: it bends the rules of iOS development a bit to ensure that the unique value your application provides is as clear as possible. This is most apparent with how Elevate handles network I/O: it provides a blocking HTTP client built from NSURLRequest for use within your tasks. This lets you write your tasks in a simple, blocking manner, while letting Elevate handle concerns relating to cancellation, and errors. 
 
-* Consolidates domain and boundary interactions (read: all non-UI code) to a single conceptual unit
-* Clarifies the intent of the code, both within the view controller and the use case
-* Simplifies IO within the use case, allowing it feel blocking, while remaining interruptible (see below)
-* Eases testing, allow you to employ either mock-based tests or acceptance tests
+Features
+--------
 
-Implementation
---------------
-Use cases are executed one at a time in a single, global `NSOperationQueue`. Each use case invocation is contained within a `NSOperation` subclass called `ElevateOperation`. `ElevateOperation` sets up an execution environment enabling compliant IO libraries to use traditional blocking control flows, rather than the traditional asynchronous style employed by iOS. Calls may be interrupted by invoking `cancel` on the `ElevateOperation`, triggering a `CancelledError` to be raised within the use case.
-
-The `Elevate::HTTP` module wraps NSURLRequest to work with this control flow. (Unfortunately, most iOS HTTP libraries do not work well with this paradigm.)
-
-Example
-------------
-Synchronizing data between a remote API and a local DB:
-
-```ruby
-class SyncArtists < Action
-  def execute
-    stale_artists.each do |stale_artist|
-      artist = api.get_artist(stale_artist.name)
-      tracked_artists.add(artist)
-    end
-
-    tracked_artists.all
-  end
-
-  private
-  def stale_artists
-    stale = []
-
-    current = api.get_artists()
-    current.each do |artist|
-      if stale?(artist)
-        stale << artist
-      end
-    end
-
-    stale
-  end
-
-  def stale?(artist)
-    existing = tracked_artists.find_by_name(artist.name)
-    if existing.nil?
-      return true
-    end
-
-    existing.updated_at < artist.updated_at
-  end
-end
-```
-
-Notice the use case (`SyncArtists`) describes the algorithm at a high level. It is not concerned with the UI, and it depends on abstractions. 
-
-The view controller retains a similar focus. In fact, it is completely ignorant of how the sync algorithm operates. It only knows that it will return a list of artists to display:
-
-```ruby
-class ArtistsViewController < UITableViewController
-  include Elevate
-
-  def artists
-    @artists ||= []
-  end
-
-  def artists=(artists)
-    @artists = artists
-    view.reloadData()
-  end
-
-  def viewWillAppear(animated)
-    super
-
-    async SyncArtists.new do
-      on_completed do |operation|
-        self.artists = operation.result
-      end
-    end
-  end
-end
-```
+* Small, beautiful DSL for describing your tasks
+* Actor-style concurrency
+* Simplifies asynchronous HTTP requests when used with Elevate::HTTP
+* Built atop of NSOperationQueue
 
 Installation
 ------------
 Update your Gemfile:
 
-    gem "elevate", "~> 0.3.0"
+    gem "elevate", "~> 0.4.0"
 
 Bundle:
 
@@ -114,27 +80,6 @@ Bundle:
 Usage
 -----
 
-Write a use case. Use case classes must respond to `execute`. Anything returned from `execute` is made available to the controller callbacks:
-```ruby
-class TrackArtist < Action
-  def initialize(artist_name)
-    @artist_name = artist_name
-  end
-
-  def execute
-    unless registration.completed?
-      user = api.register()
-      registration.save(user)
-    end
-
-    artist = api.track(@artist_name)
-    tracked_artists.add(artist)
-
-    artist
-  end
-end
-```
-
 Include the module in your view controller:
 
 ```ruby
@@ -142,39 +87,50 @@ class ArtistsSearchViewController < UIViewController
   include Elevate
 ```
 
-Execute a use case:
+Launch an async task with the `async` method:
+
+* Pass all the data the task needs to operate (such as credentials or search terms) in to the `async` method.
+* Define a block that contains a `task` block. The `task` block should contain all of your non-UI code. It will be run on a background thread. Any data passed into the `async` method will be available as instance variables, keyed by the provided hash key.
+* Optionally, define `on_started` and `on_completed` blocks to run as the task starts and finishes. These are run in the UI thread, and should contain all of your UI code.
 
 ```ruby
-async TrackArtist.new(artist_name) do
-  on_started do |operation|
-    SVProgressHUD.showWithStatus("Adding...", maskType:SVProgressHUDMaskTypeGradient)
+@track_task = async artist: searchBar.text do
+  task do
+    artist = API.track(@artist)
+    ArtistDB.update(artist)
   end
 
-  # operation.result contains the return value of #execute
-  # operation.exception contains the raised exception (if any)
-  on_completed do |operation|
-    SVProgressHUD.dismiss()
+  on_started do
+    SVProgressHUD.showWithStatus("Adding...")
+  end
+
+  on_completed do |result, exception|
+    SVProgressHUD.dismiss
   end
 end
 ```
 
+To cancel a task (like when the view controller is being dismissed), call `cancel` on the task returned by the `async` method. This causes a `CancelledError` to be raised within the task itself, which is handled by the Elevate runtime. This also prevents any callbacks you have defined from running.
+
+**NOTE: Within tasks, do not access the UI or containing view controller! It is extremely dangerous to do so. You must pass data into the `async` method to use it safely.**
+
+To Do
+-----
+* Need ability to set timeout for tasks
+* More thought on the semantics
+
 Caveats
 ---------
-* **DSL is not finalized**
-* Sending CoreData entities across threads is dangerous
-* The callback DSL is clunky to try to avoid retain issues
 * Must use Elevate's HTTP client instead of other iOS networking libs
 * No way to report progress (idea: `execute` could yield status information via optional block)
 
 Inspiration
 -----------
-* [PoEAA: Transaction Script](http://martinfowler.com/eaaCatalog/transactionScript.html)
-* [The Clean Architecture](http://blog.8thlight.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 * [Hexagonal Architecture](http://alistair.cockburn.us/Hexagonal+architecture)
-* [Architecture: The Lost Years](http://www.youtube.com/watch?v=WpkDN78P884)
 * [Android SDK's AsyncTask](http://developer.android.com/reference/android/os/AsyncTask.html)
 * Go (asynchronous IO done correctly)
 
 License
 ---------
 MIT License
+
