@@ -5,7 +5,7 @@ module Elevate
       metaclass.send(:define_method, :execute, &block)
 
       args.each do |key, value|
-        metaclass.send(:define_method, key) { value }
+        instance_variable_set("@#{key}", value)
       end
     end
   end
