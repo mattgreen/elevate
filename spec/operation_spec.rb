@@ -1,7 +1,7 @@
 describe Elevate::ElevateOperation do
   before do
-    @target = Target.new
-    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, context: self)
+    @target = lambda { @result }
+    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {})
     @queue = NSOperationQueue.alloc.init
   end
 
@@ -18,7 +18,7 @@ describe Elevate::ElevateOperation do
       @lock = NSLock.alloc.init
       @value = []
 
-      @operation.on_started = lambda do |operation|
+      @operation.on_started = lambda do
         @lock.lock()
         if @value == []
           @value << 1
@@ -26,14 +26,14 @@ describe Elevate::ElevateOperation do
         @lock.unlock()
       end
 
-      @operation.on_finished = lambda do |operation|
+      @operation.on_finished = lambda do |result, exception|
         @lock.lock()
         if @value == [1]
           @value << 2
         end
         @lock.unlock()
 
-        resume
+        Dispatch::Queue.main.sync { resume }
       end
 
       @queue.addOperation(@operation)
@@ -58,50 +58,21 @@ describe Elevate::ElevateOperation do
 
     describe "when an exception is raised" do
       it "returns the exception" do
-        @target.exception = IndexError.new
+        @target = lambda { raise IndexError }
+        @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {})
 
         @queue.addOperation(@operation)
         @operation.waitUntilFinished()
 
-        @operation.exception.should == @target.exception
-      end
-    end
-  end
-
-  describe "#main" do
-    describe "when the operation has not been run" do
-      it "invokes the target" do
-        @queue.addOperation(@operation)
-        @operation.waitUntilFinished()
-
-        @target.called.should == 1
-      end
-    end
-
-    describe "when the operation has been cancelled prior to starting" do
-      it "does not invoke the target" do
-        @operation.cancel()
-
-        @queue.addOperation(@operation)
-        @operation.waitUntilFinished()
-
-        @target.called.should == 0
-      end
-    end
-
-    describe "when the operation is running" do
-      it "allows IO to be cancelled" do
-        @queue.addOperation(@operation)
-        @operation.waitUntilFinished()
-
-        @target.io_coordinator.should.not.be.nil
+        @operation.exception.should.not.be.nil
       end
     end
   end
 
   describe "#result" do
     before do
-      @target.result = 42
+      @target = lambda { 42 }
+      @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {})
     end
 
     describe "before starting the operation" do
@@ -122,7 +93,7 @@ describe Elevate::ElevateOperation do
     end
 
     describe "when the operation has finished" do
-      it "returns the result of the target's #execute method" do
+      it "returns the result of the lambda" do
         @queue.addOperation(@operation)
         @operation.waitUntilFinished()
 

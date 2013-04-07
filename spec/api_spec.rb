@@ -10,11 +10,11 @@ describe Elevate do
 
       async do
         task do
-          sleep 0.3
-          @called = true
+          true
         end
 
-        on_completed do |operation|
+        on_completed do |result, exception|
+          @called = result
           resume
         end
       end
