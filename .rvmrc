@@ -1,5 +1,0 @@
-rvm ruby-1.9.3-p194@rubymotion --create
-
-[[ -s "config/rvm_env.sh" ]] && . "config/rvm_env.sh"
-[[ -s ".rvm_env" ]] && . ".rvm_env"
-
