@@ -1,7 +1,9 @@
-Elevate  [![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate)
+Elevate
 ======
 
 Stop scattering your domain logic across your view controller. Consolidate it to a single conceptual unit with Elevate.
+
+[![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate) [![Travis](https://api.travis-ci.org/mattgreen/elevate.png)](https://travis-ci.org/mattgreen/elevate)
 
 Example
 -------
