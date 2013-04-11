@@ -12,7 +12,7 @@ describe Elevate do
           true
         end
 
-        on_completed do |result, exception|
+        on_finish do |result, exception|
           @called = result
           resume
         end
@@ -29,7 +29,7 @@ describe Elevate do
           @name
         end
 
-        on_completed do |name, exception|
+        on_finish do |name, exception|
           @result = name
           resume
         end
@@ -37,6 +37,35 @@ describe Elevate do
 
       wait_max 1.0 do
         @result.should == "harry"
+      end
+    end
+
+    it "allows tasks to report progress" do
+      @updates = []
+
+      async do
+        task do
+          sleep 0.1
+          yield 1
+          sleep 0.2
+          yield 2
+          sleep 0.3
+          yield 3
+
+          true
+        end
+
+        on_update do |count|
+          @updates << count
+        end
+
+        on_finish do |result, exception|
+          resume
+        end
+      end
+
+      wait_max 1.0 do
+        @updates.should == [1,2,3]
       end
     end
   end

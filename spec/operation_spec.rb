@@ -13,12 +13,12 @@ describe Elevate::ElevateOperation do
     @operation.class.ancestors.should.include NSOperation
   end
 
-  describe "#on_finished" do
+  describe "#on_finish=" do
     it "invokes it after #on_started" do
       @lock = NSLock.alloc.init
       @value = []
 
-      @operation.on_started = lambda do
+      @operation.on_start = lambda do
         @lock.lock()
         if @value == []
           @value << 1
@@ -26,7 +26,7 @@ describe Elevate::ElevateOperation do
         @lock.unlock()
       end
 
-      @operation.on_finished = lambda do |result, exception|
+      @operation.on_finish = lambda do |result, exception|
         @lock.lock()
         if @value == [1]
           @value << 2

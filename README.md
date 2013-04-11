@@ -21,16 +21,24 @@ Example
       UserRegistration.store(credentials.username, credentials.token)
     end
 
-    # Return value of block is passed back to on_completed
+    # Anything yielded from this block is passed to on_update
+    yield "Logged in!"
+
+    # Return value of block is passed back to on_finish
     credentials != nil
   end
 
-  on_started do
+  on_start do
     # This block runs on the UI thread after the operation has been queued.
     SVProgressHUD.showWithStatus("Logging In...")
   end
 
-  on_completed do |result, exception|
+  on_update do |status|
+    # This block runs on the UI thread with anything the task yields
+    puts status
+  end
+
+  on_finish do |result, exception|
     # This block runs on the UI thread after the task block has finished.
     SVProgressHUD.dismiss
 
@@ -73,7 +81,7 @@ Installation
 ------------
 Update your Gemfile:
 
-    gem "elevate", "~> 0.4.0"
+    gem "elevate", "~> 0.5.0"
 
 Bundle:
 
@@ -93,7 +101,7 @@ Launch an async task with the `async` method:
 
 * Pass all the data the task needs to operate (such as credentials or search terms) in to the `async` method.
 * Define a block that contains a `task` block. The `task` block should contain all of your non-UI code. It will be run on a background thread. Any data passed into the `async` method will be available as instance variables, keyed by the provided hash key.
-* Optionally, define `on_started` and `on_completed` blocks to run as the task starts and finishes. These are run in the UI thread, and should contain all of your UI code.
+* Optionally, define `on_start` and `on_finish` blocks to run as the task starts and finishes. These are run in the UI thread, and should contain all of your UI code.
 
 ```ruby
 @track_task = async artist: searchBar.text do
@@ -102,11 +110,11 @@ Launch an async task with the `async` method:
     ArtistDB.update(artist)
   end
 
-  on_started do
+  on_start do
     SVProgressHUD.showWithStatus("Adding...")
   end
 
-  on_completed do |result, exception|
+  on_finish do |result, exception|
     SVProgressHUD.dismiss
   end
 end
@@ -124,7 +132,6 @@ To Do
 Caveats
 ---------
 * Must use Elevate's HTTP client instead of other iOS networking libs
-* No way to report progress (idea: `execute` could yield status information via optional block)
 
 Inspiration
 -----------

@@ -1,31 +1,21 @@
 module Elevate
-  class Context
-    def initialize(args, &block)
-      metaclass = class << self; self; end
-      metaclass.send(:define_method, :execute, &block)
-
-      args.each do |key, value|
-        instance_variable_set("@#{key}", value)
-      end
-    end
-  end
-
   class ElevateOperation < NSOperation
     def initWithTarget(target, args:args)
       if init()
         @coordinator = IOCoordinator.new
-        @target = target
-        @context = Context.new(args, &target)
-        @finished_callback = nil
+        @context = TaskContext.new(args, &target)
+        @update_callback = nil
+        @finish_callback = nil
 
         setCompletionBlock(lambda do
-          if @finished_callback
-            @finished_callback.call(@result, @exception) unless isCancelled
+          if @finish_callback
+            @finish_callback.call(@result, @exception) unless isCancelled
           end
 
           Dispatch::Queue.main.sync do
-            @target = nil
-            @finished_callback = nil
+            @context = nil
+            @update_callback = nil
+            @finish_callback = nil
           end
         end)
       end
@@ -42,7 +32,6 @@ module Elevate
     def inspect
       details = []
       details << "<canceled>" if @coordinator.cancelled?
-      details << "@target=#{@target.class.name}"
 
       "#<#{self.class.name}: #{details.join(" ")}>"
     end
@@ -58,7 +47,9 @@ module Elevate
 
       begin
         unless @coordinator.cancelled?
-          @result = @context.execute
+          @result = @context.execute do |*args|
+            @update_callback.call(*args) if @update_callback
+          end
         end
 
       rescue Exception => e
@@ -73,18 +64,22 @@ module Elevate
     attr_reader :exception
     attr_reader :result
 
-    def on_started=(callback)
-      started_callback = callback
-      started_callback.retain
+    def on_finish=(callback)
+      @finish_callback = callback
+    end
+
+    def on_start=(callback)
+      start_callback = callback
+      start_callback.retain
 
       Dispatch::Queue.main.async do
-        started_callback.call unless isCancelled
-        started_callback.release
+        start_callback.call unless isCancelled
+        start_callback.release
       end
     end
 
-    def on_finished=(callback)
-      @finished_callback = callback
+    def on_update=(callback)
+      @update_callback = callback
     end
   end
 end
