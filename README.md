@@ -101,7 +101,12 @@ Launch an async task with the `async` method:
 
 * Pass all the data the task needs to operate (such as credentials or search terms) in to the `async` method.
 * Define a block that contains a `task` block. The `task` block should contain all of your non-UI code. It will be run on a background thread. Any data passed into the `async` method will be available as instance variables, keyed by the provided hash key.
-* Optionally, define `on_start` and `on_finish` blocks to run as the task starts and finishes. These are run in the UI thread, and should contain all of your UI code.
+* Optionally:
+    * Define an `on_start` block to be run when the task starts
+    * Define an `on_finish` block to be run when the task finishes
+    * Define an `on_update` block to be called any time the task calls yield (useful for relaying status information back during long operations)
+
+All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to precede `on_update` and `on_finish`.
 
 ```ruby
 @track_task = async artist: searchBar.text do
@@ -127,7 +132,6 @@ To cancel a task (like when the view controller is being dismissed), call `cance
 To Do
 -----
 * Need ability to set timeout for tasks
-* More thought on the semantics
 
 Caveats
 ---------
