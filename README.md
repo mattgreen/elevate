@@ -105,11 +105,15 @@ Launch an async task with the `async` method:
     * Define an `on_start` block to be run when the task starts
     * Define an `on_finish` block to be run when the task finishes
     * Define an `on_update` block to be called any time the task calls yield (useful for relaying status information back during long operations)
+    * Define a timeout interval with the `timeout` method within the `async` block (note: unlike cancellation, `on_finish` is still called)
+    * Define an `on_timeout` block to be run if the task times out
 
-All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to precede `on_update` and `on_finish`.
+All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to precede `on_update`, `on_timeout`, and `on_finish`.
 
 ```ruby
 @track_task = async artist: searchBar.text do
+  timeout 30.0
+
   task do
     artist = API.track(@artist)
     ArtistDB.update(artist)
@@ -117,6 +121,10 @@ All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to
 
   on_start do
     SVProgressHUD.showWithStatus("Adding...")
+  end
+
+  on_timeout do
+    puts 'Rats! Timed out!'
   end
 
   on_finish do |result, exception|
@@ -128,10 +136,6 @@ end
 To cancel a task (like when the view controller is being dismissed), call `cancel` on the task returned by the `async` method. This causes a `CancelledError` to be raised within the task itself, which is handled by the Elevate runtime. This also prevents any callbacks you have defined from running.
 
 **NOTE: Within tasks, do not access the UI or containing view controller! It is extremely dangerous to do so. You must pass data into the `async` method to use it safely.**
-
-To Do
------
-* Need ability to set timeout for tasks
 
 Caveats
 ---------

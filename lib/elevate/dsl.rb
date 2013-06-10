@@ -9,6 +9,9 @@ module Elevate
     attr_reader :task_callback
     attr_reader :update_callback
 
+    attr_reader :timeout_callback
+    attr_reader :timeout_interval
+
     def on_finish(&block)
       raise "on_finish blocks must accept two parameters" unless block.arity == 2
 
@@ -21,6 +24,12 @@ module Elevate
       @start_callback = block
     end
 
+    def on_timeout(&block)
+      raise "on_timeout blocks must accept zero parameters" unless block.arity == 0
+
+      @timeout_callback = block
+    end
+
     def on_update(&block)
       @update_callback = block
     end
@@ -29,6 +38,12 @@ module Elevate
       raise "task blocks must accept zero parameters" unless block.arity == 0
 
       @task_callback = block
+    end
+
+    def timeout(seconds)
+      raise "timeout argument must be a number" unless seconds.is_a?(Numeric)
+
+      @timeout_interval = seconds
     end
   end
 end

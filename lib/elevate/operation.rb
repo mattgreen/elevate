@@ -4,6 +4,8 @@ module Elevate
       if init()
         @coordinator = IOCoordinator.new
         @context = TaskContext.new(args, &target)
+        @timeout_callback = nil
+        @timer = nil
         @update_callback = nil
         @finish_callback = nil
 
@@ -14,6 +16,13 @@ module Elevate
 
           Dispatch::Queue.main.sync do
             @context = nil
+
+            if @timer
+              @timer.invalidate
+              @timer = nil
+            end
+
+            @timeout_callback = nil
             @update_callback = nil
             @finish_callback = nil
           end
@@ -54,6 +63,10 @@ module Elevate
 
       rescue Exception => e
         @exception = e
+
+        if e.is_a?(TimeoutError)
+          @timeout_callback.call if @timeout_callback
+        end
       end
 
       @coordinator.uninstall
@@ -78,8 +91,28 @@ module Elevate
       end
     end
 
+    def on_timeout_elapsed(timer)
+      @coordinator.cancel(TimeoutError)
+    end
+
+    def on_timeout=(callback)
+      @timeout_callback = callback
+    end
+
     def on_update=(callback)
       @update_callback = callback
+    end
+
+    def timeout=(interval)
+      @timer = NSTimer.scheduledTimerWithTimeInterval(interval,
+                                                      target: self,
+                                                      selector: :"on_timeout_elapsed:",
+                                                      userInfo: nil,
+                                                      repeats: false)
+    end
+
+    def timed_out?
+      @exception.class == TimeoutError
     end
   end
 end

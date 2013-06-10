@@ -30,6 +30,14 @@ describe Elevate::IOCoordinator do
           lambda { @coordinator.send(method, "hello") }.should.raise(Elevate::CancelledError)
         end
       end
+
+      describe "when IO has timed out" do
+        it "raises TimeoutError" do
+          @coordinator.cancel(Elevate::TimeoutError)
+
+          lambda { @coordinator.send(method, "hello") }.should.raise(Elevate::TimeoutError)
+        end
+      end
     end
   end
 

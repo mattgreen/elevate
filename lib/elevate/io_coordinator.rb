@@ -8,13 +8,15 @@ module Elevate
       @lock = NSLock.alloc.init
       @blocking_operation = nil
       @cancelled = false
+      @exception_class = nil
     end
 
-    def cancel
+    def cancel(exception_class = CancelledError)
       blocking_operation = nil
 
       @lock.lock()
       @cancelled = true
+      @exception_class = exception_class
       blocking_operation = @blocking_operation
       @lock.unlock()
 
@@ -60,10 +62,13 @@ module Elevate
     private
 
     def check_for_cancellation
-      raise CancelledError if cancelled?
+      raise @exception_class if cancelled?
     end
   end
 
   class CancelledError < StandardError
+  end
+
+  class TimeoutError < CancelledError
   end
 end
