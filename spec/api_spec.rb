@@ -125,6 +125,9 @@ describe Elevate do
       end
 
       it "invokes on_timeout when a timeout occurs" do
+        @result = ""
+        @timed_out = false
+
         async do
           timeout 0.5
 

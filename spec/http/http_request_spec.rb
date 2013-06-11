@@ -52,7 +52,7 @@ describe Elevate::HTTP::HTTPRequest do
     before do
       stub_request(:get, @url).with(headers: { "API-Token" => "abc123" }).to_return(body: @body)
 
-      @request = Elevate::HTTP::HTTPRequest.new(:get, @url, headers: {})
+      @request = Elevate::HTTP::HTTPRequest.new(:get, @url, headers: { "API-Token" => "abc123" })
       @response = @request.response
     end
 

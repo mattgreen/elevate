@@ -17,5 +17,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake', '>= 0.9.0'
   gem.add_development_dependency 'guard-motion', '~> 0.1.1'
   gem.add_development_dependency 'rb-fsevent', '~> 0.9.1'
-  gem.add_development_dependency 'webstub', '~> 0.3.3'
+  gem.add_development_dependency 'webstub', '~> 0.3.8'
 end
