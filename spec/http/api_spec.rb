@@ -48,6 +48,8 @@ describe Elevate::HTTP do
         response = Elevate::HTTP.send(m, @url)
 
         NSString.alloc.initWithData(response.body, encoding: NSUTF8StringEncoding).should == "hello"
+        NSString.alloc.initWithData(response.raw_body, encoding: NSUTF8StringEncoding).should == "hello"
+        response.error.should.be.nil
         response.headers.keys.should.include("X-TestHeader")
         response.status_code.should == 204
         response.url.should == @url
