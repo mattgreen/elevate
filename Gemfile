@@ -1,3 +1,4 @@
 source 'https://rubygems.org'
 
-gemspec
+gem 'rake'
+gem 'webstub', :path => '/Users/matt/Projects/webstub'

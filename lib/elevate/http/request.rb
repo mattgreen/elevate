@@ -1,7 +1,7 @@
 module Elevate
 module HTTP
   # TODO: redirects
-  class HTTPRequest
+  class Request
     METHODS = [:get, :post, :put, :delete, :patch, :head, :options].freeze
 
     def initialize(method, url, options={})
@@ -29,7 +29,8 @@ module HTTP
         @request.setValue(value.to_s, forHTTPHeaderField:key.to_s)
       end
 
-      @response = HTTPResponse.new
+      @response = Response.new
+      @response.url = url
 
       @connection = nil
       @promise = Promise.new
@@ -75,10 +76,10 @@ module HTTP
     end
 
     def connection(connection, didFailWithError: error)
-      puts "ERROR: #{error.localizedDescription} (code: #{error.code})"
+      puts "ERROR: #{error.localizedDescription} (code: #{error.code})" unless RUBYMOTION_ENV == "test"
 
       @response.error = error
-      @response.freeze
+      #@response.freeze
 
       ActivityIndicator.instance.hide
 
@@ -86,7 +87,7 @@ module HTTP
     end
 
     def connectionDidFinishLoading(connection)
-      @response.freeze
+      #@response.freeze
 
       ActivityIndicator.instance.hide
 

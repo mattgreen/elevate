@@ -1,4 +1,4 @@
-describe Elevate::HTTP::HTTPRequest do
+describe Elevate::HTTP::Request do
   extend WebStub::SpecHelpers
 
   before do
@@ -11,15 +11,15 @@ describe Elevate::HTTP::HTTPRequest do
   end
 
   it "requires a valid HTTP method" do
-    lambda { Elevate::HTTP::HTTPRequest.new(:invalid, @url) }.should.raise(ArgumentError)
+    lambda { Elevate::HTTP::Request.new(:invalid, @url) }.should.raise(ArgumentError)
   end
 
   it "requires a URL starting with http" do
-    lambda { Elevate::HTTP::HTTPRequest.new(:get, "asdf") }.should.raise(ArgumentError)
+    lambda { Elevate::HTTP::Request.new(:get, "asdf") }.should.raise(ArgumentError)
   end
 
   it "requires the body to be an instance of NSData" do
-    lambda { Elevate::HTTP::HTTPRequest.new(:get, @url, body: @body) }.should.raise(ArgumentError)
+    lambda { Elevate::HTTP::Request.new(:get, @url, body: @body) }.should.raise(ArgumentError)
   end
 
   describe "fulfilling a GET request" do
@@ -27,7 +27,7 @@ describe Elevate::HTTP::HTTPRequest do
       stub_request(:get, @url).
         to_return(body: @body, headers: {"Content-Type" => "text/plain"}, status_code: 201)
 
-      @request = Elevate::HTTP::HTTPRequest.new(:get, @url)
+      @request = Elevate::HTTP::Request.new(:get, @url)
       @response = @request.response
     end
 
@@ -52,7 +52,7 @@ describe Elevate::HTTP::HTTPRequest do
     before do
       stub_request(:get, @url).with(headers: { "API-Token" => "abc123" }).to_return(body: @body)
 
-      @request = Elevate::HTTP::HTTPRequest.new(:get, @url, headers: { "API-Token" => "abc123" })
+      @request = Elevate::HTTP::Request.new(:get, @url, headers: { "API-Token" => "abc123" })
       @response = @request.response
     end
 
@@ -67,7 +67,7 @@ describe Elevate::HTTP::HTTPRequest do
     end
 
     it "sends the body as part of the request" do
-      request = Elevate::HTTP::HTTPRequest.new(:post, @url, body: @body.dataUsingEncoding(NSUTF8StringEncoding))
+      request = Elevate::HTTP::Request.new(:post, @url, body: @body.dataUsingEncoding(NSUTF8StringEncoding))
       response = request.response
 
       NSString.alloc.initWithData(response.body, encoding:NSUTF8StringEncoding).should == @body
@@ -82,7 +82,7 @@ describe Elevate::HTTP::HTTPRequest do
     it "aborts the request" do
       start = Time.now
 
-      request = Elevate::HTTP::HTTPRequest.new(:get, @url)
+      request = Elevate::HTTP::Request.new(:get, @url)
       request.start()
       request.cancel()
 
@@ -93,7 +93,7 @@ describe Elevate::HTTP::HTTPRequest do
     end
 
     it "sets the response to nil" do
-      request = Elevate::HTTP::HTTPRequest.new(:get, @url)
+      request = Elevate::HTTP::Request.new(:get, @url)
       request.start()
       request.cancel()
 
