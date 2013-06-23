@@ -25,6 +25,18 @@ module HTTP
       end
     end
 
+    def method_missing(m, *args, &block)
+      return super if body.is_a?(NSData)
+
+      body.send(m, *args, &block)
+    end
+
+    def respond_to?(m, include_private = false)
+      return false if body.is_a(NSData)
+
+      body.respond_to?(m, include_private)
+    end
+
     attr_accessor :headers
     attr_accessor :status_code
     attr_accessor :error

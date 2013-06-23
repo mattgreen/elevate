@@ -54,14 +54,29 @@ describe Elevate::HTTP do
       end
 
       describe "when the response is encoded as JSON" do
-        before do
-          stub_request(m, @url).to_return(json: { user_id: "3", token: "secret" })
-        end
-
         it "should automatically decode it" do
+          stub_request(m, @url).to_return(json: { user_id: "3", token: "secret" })
           response = Elevate::HTTP.send(m, @url)
 
           response.body.should == { "user_id" => "3", "token" => "secret" }
+        end
+
+        describe "when a JSON dictionary is returned" do
+          it "the returned response should behave like a Hash" do
+            stub_request(m, @url).to_return(json: { user_id: "3", token: "secret" })
+            response = Elevate::HTTP.send(m, @url)
+
+            response["user_id"].should == "3"
+          end
+        end
+
+        describe "when a JSON array is returned" do
+          it "the returned response should behave like an Array" do
+            stub_request(m, @url).to_return(json: ["apple", "orange", "pear"])
+            response = Elevate::HTTP.send(m, @url)
+
+            response.length.should == 3
+          end
         end
       end
 
