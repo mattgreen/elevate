@@ -17,7 +17,7 @@ module HTTP
 
     def body
       @body ||= begin
-        if headers["Content-Type"] =~ %r{application/json}
+        if json?
           NSJSONSerialization.JSONObjectWithData(@raw_body, options: 0, error: nil)
         else
           @raw_body
@@ -25,16 +25,22 @@ module HTTP
       end
     end
 
+    def freeze
+      body
+
+      super
+    end
+
     def method_missing(m, *args, &block)
-      return super if body.is_a?(NSData)
+      return super unless json?
 
       body.send(m, *args, &block)
     end
 
-    def respond_to?(m, include_private = false)
-      return false if body.is_a(NSData)
+    def respond_to_missing?(m, include_private = false)
+      return false unless json?
 
-      body.respond_to?(m, include_private)
+      body.respond_to_missing?(m, include_private)
     end
 
     attr_accessor :headers
@@ -42,6 +48,12 @@ module HTTP
     attr_accessor :error
     attr_reader   :raw_body
     attr_accessor :url
+
+    private
+
+    def json?
+      headers && headers["Content-Type"] =~ %r{application/json}
+    end
   end
 end
 end

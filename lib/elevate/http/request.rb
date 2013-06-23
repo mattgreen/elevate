@@ -79,7 +79,7 @@ module HTTP
       puts "ERROR: #{error.localizedDescription} (code: #{error.code})" unless RUBYMOTION_ENV == "test"
 
       @response.error = error
-      #@response.freeze
+      @response.freeze
 
       ActivityIndicator.instance.hide
 
@@ -87,7 +87,7 @@ module HTTP
     end
 
     def connectionDidFinishLoading(connection)
-      #@response.freeze
+      @response.freeze
 
       ActivityIndicator.instance.hide
 
