@@ -87,6 +87,7 @@ module HTTP
     end
 
     def connectionDidFinishLoading(connection)
+      @response.url = connection.currentRequest.URL.absoluteString
       @response.freeze
 
       ActivityIndicator.instance.hide
