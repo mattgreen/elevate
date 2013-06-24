@@ -84,7 +84,7 @@ describe Elevate do
           timeout 3.0
 
           task do
-            Elevate::HTTP::HTTPClient.new("http://example.com/").get("")
+            Elevate::HTTP.get("http://example.com/")
 
             "finished"
           end
@@ -106,7 +106,7 @@ describe Elevate do
           timeout 0.5
 
           task do
-            Elevate::HTTP::HTTPClient.new("http://example.com/").get("")
+            Elevate::HTTP.get("http://example.com/")
 
             "finished"
           end
@@ -132,7 +132,7 @@ describe Elevate do
           timeout 0.5
 
           task do
-            Elevate::HTTP::HTTPClient.new("http://example.com/").get("")
+            Elevate::HTTP.get("http://example.com/")
 
             "finished"
           end
