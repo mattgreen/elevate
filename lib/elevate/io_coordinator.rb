@@ -14,23 +14,23 @@ module Elevate
     def cancel(exception_class = CancelledError)
       blocking_operation = nil
 
-      @lock.lock()
+      @lock.lock
       @cancelled = true
       @exception_class = exception_class
       blocking_operation = @blocking_operation
-      @lock.unlock()
+      @lock.unlock
 
       if blocking_operation
-        blocking_operation.cancel()
+        blocking_operation.cancel
       end
     end
 
     def cancelled?
       cancelled = nil
 
-      @lock.lock()
+      @lock.lock
       cancelled = @cancelled
-      @lock.unlock()
+      @lock.unlock
 
       cancelled
     end
@@ -42,15 +42,15 @@ module Elevate
     def signal_blocked(operation)
       check_for_cancellation
 
-      @lock.lock()
+      @lock.lock
       @blocking_operation = operation
-      @lock.unlock()
+      @lock.unlock
     end
 
     def signal_unblocked(operation)
-      @lock.lock()
+      @lock.lock
       @blocking_operation = nil
-      @lock.unlock()
+      @lock.unlock
 
       check_for_cancellation
     end

@@ -1,7 +1,7 @@
 module Elevate
   class ElevateOperation < NSOperation
     def initWithTarget(target, args:args)
-      if init()
+      if init
         @coordinator = IOCoordinator.new
         @context = TaskContext.new(args, &target)
         @timeout_callback = nil
