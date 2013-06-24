@@ -11,7 +11,7 @@ module HTTP
       coordinator.signal_unblocked(request) if coordinator
 
       if error = response.error
-        if error.code == -1009
+        if error.code == NSURLErrorNotConnectedToInternet
           raise OfflineError, error
         else
           raise RequestError, response.error
