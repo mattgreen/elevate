@@ -15,7 +15,5 @@ Gem::Specification.new do |gem|
   gem.version       = Elevate::VERSION
 
   gem.add_development_dependency 'rake', '>= 0.9.0'
-  gem.add_development_dependency 'guard-motion', '~> 0.1.1'
-  gem.add_development_dependency 'rb-fsevent', '~> 0.9.1'
-  gem.add_development_dependency 'webstub', '~> 0.4.0'
+  gem.add_development_dependency 'webstub', '~> 0.6.0'
 end

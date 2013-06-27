@@ -1,6 +1,5 @@
 module Elevate
 module HTTP
-  # TODO: redirects
   class Request
     METHODS = [:get, :post, :put, :delete, :patch, :head, :options].freeze
 
@@ -87,12 +86,17 @@ module HTTP
     end
 
     def connectionDidFinishLoading(connection)
-      @response.url = connection.currentRequest.URL.absoluteString
       @response.freeze
 
       ActivityIndicator.instance.hide
 
       @promise.fulfill(@response)
+    end
+
+    def connection(connection, willSendRequest: request, redirectResponse: response)
+      @response.url = request.URL.absoluteString
+
+      request
     end
 
     def get_authorization_header(credentials)

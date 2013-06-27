@@ -12,95 +12,138 @@ describe Elevate::HTTP do
     describe ".#{m}" do
       it "synchronously issues a HTTP #{m} request" do
         stub = stub_request(m, @url)
-
         Elevate::HTTP.send(m, @url)
 
         stub.should.be.requested
       end
+    end
+  end
 
-      it "sends query strings when the query option is used" do
-        stub = stub_request(m, "#{@url}?a=1&b=hello&c=4.2")
+  describe "Request options" do
+    it "encodes query string of :headers" do
+      stub = stub_request(:get, "#{@url}?a=1&b=hello&c=4.2")
 
-        Elevate::HTTP.send(m, @url, query: { a: 1, b: "hello", c: "4.2" })
+      Elevate::HTTP.get(@url, query: { a: 1, b: "hello", c: "4.2" })
 
-        stub.should.be.requested
+      stub.should.be.requested
+    end
+
+    it "sends headers specified by :headers" do
+      stub = stub_request(:get, @url).
+        with(headers: { "API-Key" => "secret" })
+
+      Elevate::HTTP.get(@url, headers: { "API-Key" => "secret" })
+
+      stub.should.be.requested
+    end
+
+    it "sends body content specified by :body" do
+      stub = stub_request(:post, @url).with(body: "hello")
+
+      Elevate::HTTP.post(@url, body: "hello".dataUsingEncoding(NSUTF8StringEncoding))
+
+      stub.should.be.requested
+    end
+  end
+
+  describe "Response" do
+    it "returns a Response" do
+      stub_request(:get, @url).
+        to_return(body: "hello",
+                  headers: { "X-TestHeader" => "Value" }, 
+                  status_code: 204)
+
+      response = Elevate::HTTP.get(@url)
+
+      NSString.alloc.initWithData(response.body, encoding: NSUTF8StringEncoding).should == "hello"
+      NSString.alloc.initWithData(response.raw_body, encoding: NSUTF8StringEncoding).should == "hello"
+      response.error.should.be.nil
+      response.headers.keys.should.include("X-TestHeader")
+      response.status_code.should == 204
+      response.url.should == @url
+    end
+
+    describe "when the response is encoded as JSON" do
+      it "should automatically decode it" do
+        stub_request(:get, @url).
+          to_return(json: { user_id: "3", token: "secret" })
+
+        response = Elevate::HTTP.get(@url)
+
+        response.body.should == { "user_id" => "3", "token" => "secret" }
       end
 
-      it "sends headers when the header option is used" do
-        stub = stub_request(m, @url).with(headers: { "API-Key" => "secret" })
+      describe "when a JSON dictionary is returned" do
+        it "the returned response should behave like a Hash" do
+          stub_request(:get, @url).
+            to_return(json: { user_id: "3", token: "secret" })
 
-        Elevate::HTTP.send(m, @url, headers: { "API-Key" => "secret" })
+          response = Elevate::HTTP.get(@url)
 
-        stub.should.be.requested
+          response["user_id"].should == "3"
+        end
       end
 
-      it "sends a body when the body option is used" do
-        stub = stub_request(m, @url).with(body: "hello")
+      describe "when a JSON array is returned" do
+        it "the returned response should behave like an Array" do
+          stub_request(:get, @url).
+            to_return(json: ["apple", "orange", "pear"])
 
-        Elevate::HTTP.send(m, @url, body: "hello".dataUsingEncoding(NSUTF8StringEncoding))
+          response = Elevate::HTTP.get(@url)
 
-        stub.should.be.requested
+          response.length.should == 3
+        end
+      end
+    end
+
+    describe "when the response is redirected" do
+      it "redirects to the final URL" do
+        @redirect_url = @url + "redirected"
+
+        stub_request(:get, @redirect_url).to_return(body: "redirected")
+        stub_request(:get, @url).to_redirect(url: @redirect_url)
+
+        response = Elevate::HTTP.get(@url)
+        response.url.should == @redirect_url
       end
 
-      it "returns a Response" do
-        stub_request(m, @url).to_return(body: "hello", headers: { "X-TestHeader" => "Value" }, status_code: 204)
+      describe "with an infinite redirect loop" do
+        before do
+          @url2 = @url + "redirect"
 
-        response = Elevate::HTTP.send(m, @url)
-
-        NSString.alloc.initWithData(response.body, encoding: NSUTF8StringEncoding).should == "hello"
-        NSString.alloc.initWithData(response.raw_body, encoding: NSUTF8StringEncoding).should == "hello"
-        response.error.should.be.nil
-        response.headers.keys.should.include("X-TestHeader")
-        response.status_code.should == 204
-        response.url.should == @url
-      end
-
-      describe "when the response is encoded as JSON" do
-        it "should automatically decode it" do
-          stub_request(m, @url).to_return(json: { user_id: "3", token: "secret" })
-          response = Elevate::HTTP.send(m, @url)
-
-          response.body.should == { "user_id" => "3", "token" => "secret" }
+          stub_request(:get, @url).to_redirect(url: @url2)
+          stub_request(:get, @url2).to_redirect(url: @url)
         end
 
-        describe "when a JSON dictionary is returned" do
-          it "the returned response should behave like a Hash" do
-            stub_request(m, @url).to_return(json: { user_id: "3", token: "secret" })
-            response = Elevate::HTTP.send(m, @url)
-
-            response["user_id"].should == "3"
-          end
-        end
-
-        describe "when a JSON array is returned" do
-          it "the returned response should behave like an Array" do
-            stub_request(m, @url).to_return(json: ["apple", "orange", "pear"])
-            response = Elevate::HTTP.send(m, @url)
-
-            response.length.should == 3
-          end
-        end
-      end
-
-      #describe "when the response has a HTTP error status" do
-        #it "raises RequestError" do
-          #stub_request(m, @url).to_return(status_code: 422)
-
-          #lambda { Elevate::HTTP.send(m, @url) }.should.raise(Elevate::HTTP::RequestError)
-        #end
-      #end
-
-      describe "when the request cannot be fulfilled" do
         it "raises a RequestError" do
-          lambda { Elevate::HTTP.send(m, @url) }.should.raise(Elevate::HTTP::RequestError)
+          lambda { Elevate::HTTP.get(@url) }.
+            should.raise(Elevate::HTTP::RequestError)
         end
       end
+    end
 
-      #describe "when the Internet connection is offline" do
-        #it "raises an OfflineError" do
-        # TODO: extend WebStub to return specific error codes
-        #end
+    #describe "when the response has a HTTP error status" do
+      #it "raises RequestError" do
+        #stub_request(m, @url).to_return(status_code: 422)
+
+        #lambda { Elevate::HTTP.send(m, @url) }.should.raise(Elevate::HTTP::RequestError)
       #end
+    #end
+
+    describe "when the request cannot be fulfilled" do
+      it "raises a RequestError" do
+        lambda { Elevate::HTTP.get(@url) }.
+          should.raise(Elevate::HTTP::RequestError)
+      end
+    end
+
+    describe "when the Internet connection is offline" do
+      it "raises an OfflineError" do
+        stub_request(:get, @url).to_fail(code: NSURLErrorNotConnectedToInternet)
+
+        lambda { Elevate::HTTP.get(@url) }.
+          should.raise(Elevate::HTTP::OfflineError)
+      end
     end
   end
 end
