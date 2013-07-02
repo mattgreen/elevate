@@ -102,7 +102,9 @@ describe Elevate do
       end
 
       it "stops the operation when timeout interval has elapsed" do
-        task = async do
+        @result = nil
+
+        @task = async do
           timeout 0.5
 
           task do
@@ -120,7 +122,7 @@ describe Elevate do
         wait_max 5.0 do
           @result.should.not == "finished"
 
-          task.timed_out?.should.be.true
+          @task.timed_out?.should.be.true
         end
       end
 
