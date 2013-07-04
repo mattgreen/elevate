@@ -8,6 +8,13 @@ module HTTP
       raise ArgumentError, "invalid URL" unless url.start_with? "http"
       raise ArgumentError, "invalid body type; must be NSData" if options[:body] && ! options[:body].is_a?(NSData)
 
+      if root = options.delete(:json)
+        options[:body] = NSJSONSerialization.dataWithJSONObject(root, options: 0, error: nil)
+
+        options[:headers] ||= {}
+        options[:headers]["Content-Type"] = "application/json"
+      end
+
       unless options.fetch(:query, {}).empty?
         url += "?" + URI.encode_query(options[:query])
       end
@@ -46,7 +53,7 @@ module HTTP
 
     def response
       unless started?
-        start()
+        start
       end
 
       @promise.value

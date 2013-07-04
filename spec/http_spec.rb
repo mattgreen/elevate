@@ -44,6 +44,24 @@ describe Elevate::HTTP do
 
       stub.should.be.requested
     end
+
+    describe "with a JSON body" do
+      it "encodes JSON specified by :json" do
+        stub = stub_request(:post, @url).with(body: '{"test":"secret"}')
+
+        Elevate::HTTP.post(@url, json: { "test" => "secret" })
+
+        stub.should.be.requested
+      end
+
+      it "sets the Content-Type automatically" do
+        stub = stub_request(:post, @url).with(body: '{"test":"secret"}', headers: { "Content-Type" => "application/json" })
+
+        Elevate::HTTP.post(@url, json: { "test" => "secret" })
+
+        stub.should.be.requested
+      end
+    end
   end
 
   describe "Response" do
