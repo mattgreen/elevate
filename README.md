@@ -10,13 +10,12 @@ Example
 
 ```ruby
 @login_task = async username: username.text, password: password.text do
+  # This block runs on a background thread.
   task do
-    # This block runs on a background thread.
-    #
-    # The @username and @password instance variables correspond to the args
-    # passed into async. API is a thin wrapper class over Elevate::HTTP,
-    # which blocks until the request returns, yet can be interrupted.
-    credentials = API.login(@username, @password)
+    # @username and @password correspond to the Hash keys provided to async.
+    args = { username: @username, password: @password }
+
+    credentials = Elevate::HTTP.post(LOGIN_URL, args)
     if credentials
       UserRegistration.store(credentials.username, credentials.token)
     end
@@ -57,7 +56,7 @@ end
 
 Background
 -----------
-Many iOS apps have fairly simple domain logic that is obscured by several programming 'taxes':
+Many iOS/OS X apps have fairly simple domain logic that is obscured by several programming 'taxes':
 
 * UI management
 * asynchronous network requests
@@ -65,23 +64,19 @@ Many iOS apps have fairly simple domain logic that is obscured by several progra
 
 These are necessary to ensure a good user experience, but they splinter your domain logic (that is, what your application does) through your view controller. Gross.
 
-Elevate is a mini task queue for your iOS app, much like Resque or Sidekiq. Rather than defining part of an operation to run on the UI thread, and a CPU-intensive portion on a background thread, Elevate is designed so you run the *entire* operation in the background, and receive notifications when it starts and finishes. This has a nice side effect of consolidating all the interaction for a particular task to one place. The UI code is cleanly isolated from the non-UI code. When your tasks become complex, you can elect to extract them out to a service object.
+Elevate is a mini task queue for your app, much like Resque or Sidekiq. Rather than defining part of an operation to run on the UI thread, and a CPU-intensive portion on a background thread, Elevate is designed so you run the *entire* operation in the background, and receive notifications at various times. This has a nice side effect of consolidating all the interaction for a particular task to one place. The UI code is cleanly isolated from the non-UI code. When your tasks become complex, you can elect to extract them out to a service object.
 
-In a sense, Elevate is almost a control-flow library: it bends the rules of iOS development a bit to ensure that the unique value your application provides is as clear as possible. This is most apparent with how Elevate handles network I/O: it provides a blocking HTTP client built from NSURLRequest for use within your tasks. This lets you write your tasks in a simple, blocking manner, while letting Elevate handle concerns relating to cancellation, and errors. 
+In a sense, Elevate is almost a control-flow library: it bends the rules of app development a bit to ensure that the unique value your application provides is as clear as possible. 
 
-Features
+Tutorial
 --------
-
-* Small, beautiful DSL for describing your tasks
-* Actor-style concurrency
-* Simplifies asynchronous HTTP requests when used with Elevate::HTTP
-* Built atop of NSOperationQueue
+If you're new to Elevate, please start with the [tutorial](https://github.com/mattgreen/elevate/wiki/Tutorial).
 
 Installation
 ------------
 Update your Gemfile:
 
-    gem "elevate", "~> 0.5.0"
+    gem "elevate", "~> 0.6.0"
 
 Bundle:
 
@@ -97,34 +92,20 @@ class ArtistsSearchViewController < UIViewController
   include Elevate
 ```
 
-Launch an async task with the `async` method:
-
-* Pass all the data the task needs to operate (such as credentials or search terms) in to the `async` method.
-* Define a block that contains a `task` block. The `task` block should contain all of your non-UI code. It will be run on a background thread. Any data passed into the `async` method will be available as instance variables, keyed by the provided hash key.
-* Optionally:
-    * Define an `on_start` block to be run when the task starts
-    * Define an `on_finish` block to be run when the task finishes
-    * Define an `on_update` block to be called any time the task calls yield (useful for relaying status information back during long operations)
-    * Define a timeout interval with the `timeout` method within the `async` block (note: unlike cancellation, `on_finish` is still called)
-    * Define an `on_timeout` block to be run if the task times out
-
-All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to precede `on_update`, `on_timeout`, and `on_finish`.
-
+Launch an async task with the `async` method: 
 ```ruby
 @track_task = async artist: searchBar.text do
-  timeout 30.0
-
   task do
-    artist = API.track(@artist)
+    response = Elevate::HTTP.get("http://example.com/artists", query: { artist: @artist })
+
+    artist = Artist.from_hash(response)
     ArtistDB.update(artist)
+
+    response["name"]
   end
 
   on_start do
     SVProgressHUD.showWithStatus("Adding...")
-  end
-
-  on_timeout do
-    puts 'Rats! Timed out!'
   end
 
   on_finish do |result, exception|
@@ -133,9 +114,36 @@ All of the `on_` blocks are called on the UI thread. `on_start` is guaranteed to
 end
 ```
 
-To cancel a task (like when the view controller is being dismissed), call `cancel` on the task returned by the `async` method. This causes a `CancelledError` to be raised within the task itself, which is handled by the Elevate runtime. This also prevents any callbacks you have defined from running.
+If you might need to cancel the task later, call `cancel` on the object returned by `async`:
+```ruby
+@track_task.cancel
+```
 
-**NOTE: Within tasks, do not access the UI or containing view controller! It is extremely dangerous to do so. You must pass data into the `async` method to use it safely.**
+Timeouts
+--------
+Elevate 0.6.0 includes support for timeouts. Timeouts are declared using the `timeout` method within the `async` block. They start when an operation is queued, and automatically abort the task when the duration passes. If the task takes longer than the specified duration, the `on_timeout` callback is run.
+
+Example:
+
+```ruby
+async do
+  timeout 0.1
+
+  task do
+    Elevate::HTTP.get("http://example.com/")
+  end
+
+  on_timeout do
+    puts 'timed out'
+  end
+
+  on_finish do |result, exception|
+    puts 'completed!'
+  end
+end
+
+
+```
 
 Caveats
 ---------
