@@ -54,10 +54,30 @@ describe Elevate::HTTP do
         stub.should.be.requested
       end
 
-      it "sets the Content-Type automatically" do
-        stub = stub_request(:post, @url).with(body: '{"test":"secret"}', headers: { "Content-Type" => "application/json" })
+      it "sets the correct Content-Type" do
+        stub = stub_request(:post, @url).
+          with(body: '{"test":"secret"}', headers: { "Content-Type" => "application/json" })
 
         Elevate::HTTP.post(@url, json: { "test" => "secret" })
+
+        stub.should.be.requested
+      end
+    end
+
+    describe "with a form body" do
+      it "encodes form data specified by :form" do
+        stub = stub_request(:post, @url).with(body: { "test" => "secret", "user" => "matt" })
+
+        Elevate::HTTP.post(@url, form: { "test" => "secret", "user" => "matt" })
+
+        stub.should.be.requested
+      end
+
+      it "sets the correct Content-Type" do
+        stub = stub_request(:post, @url).
+          with(body: { "test" => "secret", "user" => "matt" }, headers: { "Content-Type" => "application/x-www-form-urlencoded" })
+
+        Elevate::HTTP.post(@url, form: { "test" => "secret", "user" => "matt" })
 
         stub.should.be.requested
       end

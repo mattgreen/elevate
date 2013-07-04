@@ -8,15 +8,18 @@ module HTTP
       raise ArgumentError, "invalid URL" unless url.start_with? "http"
       raise ArgumentError, "invalid body type; must be NSData" if options[:body] && ! options[:body].is_a?(NSData)
 
-      if root = options.delete(:json)
-        options[:body] = NSJSONSerialization.dataWithJSONObject(root, options: 0, error: nil)
-
-        options[:headers] ||= {}
-        options[:headers]["Content-Type"] = "application/json"
-      end
-
       unless options.fetch(:query, {}).empty?
         url += "?" + URI.encode_query(options[:query])
+      end
+
+      options[:headers] ||= {}
+
+      if root = options.delete(:json)
+        options[:body] = NSJSONSerialization.dataWithJSONObject(root, options: 0, error: nil)
+        options[:headers]["Content-Type"] = "application/json"
+      elsif root = options.delete(:form)
+        options[:body] = URI.encode_www_form(root).dataUsingEncoding(NSASCIIStringEncoding)
+        options[:headers]["Content-Type"] ||= "application/x-www-form-urlencoded"
       end
 
       @request = NSMutableURLRequest.alloc.init
@@ -108,6 +111,10 @@ module HTTP
 
     def get_authorization_header(credentials)
       "Basic " + Base64.encode("#{credentials[:username]}:#{credentials[:password]}")
+    end
+
+    def get_body
+
     end
   end
 end
