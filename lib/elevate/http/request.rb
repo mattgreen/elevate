@@ -112,10 +112,6 @@ module HTTP
     def get_authorization_header(credentials)
       "Basic " + Base64.encode("#{credentials[:username]}:#{credentials[:password]}")
     end
-
-    def get_body
-
-    end
   end
 end
 end
