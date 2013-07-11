@@ -46,10 +46,18 @@ describe Elevate::HTTP do
     end
 
     describe "with a JSON body" do
-      it "encodes JSON specified by :json" do
+      it "encodes JSON dictionary specified by :json" do
         stub = stub_request(:post, @url).with(body: '{"test":"secret"}')
 
         Elevate::HTTP.post(@url, json: { "test" => "secret" })
+
+        stub.should.be.requested
+      end
+
+      it "encodes JSON array specified by :json" do
+        stub = stub_request(:post, @url).with(body: '["1","2"]')
+
+        Elevate::HTTP.post(@url, json: ["1", "2"])
 
         stub.should.be.requested
       end
