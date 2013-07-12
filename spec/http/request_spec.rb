@@ -83,7 +83,7 @@ describe Elevate::HTTP::Request do
       start = Time.now
 
       request = Elevate::HTTP::Request.new(:get, @url)
-      request.start
+      request.send
       request.cancel
 
       response = request.response # simulate blocking
@@ -94,7 +94,7 @@ describe Elevate::HTTP::Request do
 
     it "sets the response to nil" do
       request = Elevate::HTTP::Request.new(:get, @url)
-      request.start
+      request.send
       request.cancel
 
       request.response.should.be.nil

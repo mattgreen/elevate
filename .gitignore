@@ -6,3 +6,5 @@ resources/*.momd
 resources/*.storyboardc
 .rvmrc
 Gemfile.lock
+doc
+.yardoc

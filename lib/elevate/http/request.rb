@@ -1,8 +1,46 @@
 module Elevate
 module HTTP
+  # Encapsulates a HTTP request.
+  #
+  # +NSURLConnection+ is responsible for fulfilling the request. The response
+  # is buffered in memory as it is received, and made available through the
+  # +response+ method.
+  #
+  # @api public
   class Request
     METHODS = [:get, :post, :put, :delete, :patch, :head, :options].freeze
 
+    # Initializes a HTTP request with the specified parameters.
+    #
+    # @param [String] method
+    #   HTTP method to use
+    # @param [String] url
+    #   URL to load
+    # @param [Hash] options
+    #   Options to use
+    #
+    # @option options [Hash] :query
+    #   Hash to construct the query string from.
+    # @option options [Hash] :headers
+    #   Headers to append to the request.
+    # @option options [Hash] :credentials
+    #   Credentials to be used with HTTP Basic Authentication. Must have a
+    #   +:username+ and/or +:password+ key.
+    # @option options [NSData] :body
+    #   Raw bytes to use as the body.
+    # @option options [Hash,Array] :json
+    #   Hash/Array to be JSON-encoded as the request body. Sets the
+    #   +Content-Type+ header to +application/json+.
+    # @option options [Hash] :form
+    #   Hash to be form encoded as the request body. Sets the +Content-Type+
+    #   header to +application/x-www-form-urlencoded+.
+    #
+    # @raise [ArgumentError]
+    #   if an illegal HTTP method is used
+    # @raise [ArgumentError]
+    #   if the URL does not start with 'http'
+    # @raise [ArgumentError]
+    #   if the +:body+ option is not an instance of +NSData+
     def initialize(method, url, options={})
       raise ArgumentError, "invalid HTTP method" unless METHODS.include? method.downcase
       raise ArgumentError, "invalid URL" unless url.start_with? "http"
@@ -45,8 +83,15 @@ module HTTP
       @promise = Promise.new
     end
 
+    # Cancels an in-flight request.
+    #
+    # This method is safe to call from any thread.
+    #
+    # @return [void]
+    #
+    # @api public
     def cancel
-      return unless started?
+      return unless sent?
 
       NetworkThread.cancel(@connection)
       ActivityIndicator.instance.hide
@@ -54,22 +99,41 @@ module HTTP
       @promise.fulfill(nil)
     end
 
+    # Returns a response to this request, sending it if necessary
+    #
+    # This method blocks the calling thread, unless interrupted.
+    #
+    # @return [Elevate::HTTP::Response, nil]
+    #   response to this request, or nil, if this request was canceled
+    #
+    # @api public
     def response
-      unless started?
-        start
+      unless sent?
+        send
       end
 
       @promise.value
     end
 
-    def start
+    # Sends this request. The caller is not blocked.
+    #
+    # @return [void]
+    #
+    # @api public
+    def send
       @connection = NSURLConnection.alloc.initWithRequest(@request, delegate:self, startImmediately:false)
 
       NetworkThread.start(@connection)
       ActivityIndicator.instance.show
     end
 
-    def started?
+    # Returns true if this request is in-flight
+    #
+    # @return [Boolean]
+    #   true if this request is in-flight
+    #
+    # @api public
+    def sent?
       @connection != nil
     end
 

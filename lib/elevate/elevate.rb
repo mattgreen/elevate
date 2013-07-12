@@ -1,4 +1,13 @@
 module Elevate
+  # Launches a new asynchronous task.
+  #
+  # @param args [Hash]
+  #   input arguments for the task, available to the +task+ block
+  #
+  # @return [NSOperation]
+  #   operation representing this task
+  #
+  # @api public
   def async(args = {}, &block)
     with_operation(args, block) do |operation|
       queue.addOperation(operation)
