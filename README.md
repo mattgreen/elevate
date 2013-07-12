@@ -66,11 +66,13 @@ These are necessary to ensure a good user experience, but they splinter your dom
 
 Elevate is a mini task queue for your app, much like Resque or Sidekiq. Rather than defining part of an operation to run on the UI thread, and a CPU-intensive portion on a background thread, Elevate is designed so you run the *entire* operation in the background, and receive notifications at various times. This has a nice side effect of consolidating all the interaction for a particular task to one place. The UI code is cleanly isolated from the non-UI code. When your tasks become complex, you can elect to extract them out to a service object.
 
-In a sense, Elevate is almost a control-flow library: it bends the rules of app development a bit to ensure that the unique value your application provides is as clear as possible. 
+In a sense, Elevate is almost a control-flow library: it bends the rules of app development a bit to ensure that the unique value your application provides is as clear as possible.
 
-Tutorial
+Documentation
 --------
-If you're new to Elevate, please start with the [tutorial](https://github.com/mattgreen/elevate/wiki/Tutorial).
+- [Tutorial](https://github.com/mattgreen/elevate/wiki/Tutorial) - start here
+
+- [Wiki](https://github.com/mattgreen/elevate/wiki)
 
 Installation
 ------------
@@ -92,7 +94,7 @@ class ArtistsSearchViewController < UIViewController
   include Elevate
 ```
 
-Launch an async task with the `async` method: 
+Launch an async task with the `async` method:
 ```ruby
 @track_task = async artist: searchBar.text do
   task do
