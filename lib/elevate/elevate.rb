@@ -31,10 +31,12 @@ module Elevate
     raise "No task block specified!" unless dsl.task_callback
 
     operation = ElevateOperation.alloc.initWithTarget(dsl.task_callback, args: args)
-    operation.on_start  = Callback.new(self, dsl.start_callback)  if dsl.start_callback
-    operation.on_finish = Callback.new(self, dsl.finish_callback) if dsl.finish_callback
-    operation.on_update = Callback.new(self, dsl.update_callback)   if dsl.update_callback
-    operation.on_timeout= Callback.new(self, dsl.timeout_callback)  if dsl.timeout_callback
+    weak = WeakRef.new(self)
+
+    operation.on_start  = Callback.new(weak, dsl.start_callback)  if dsl.start_callback
+    operation.on_finish = Callback.new(weak, dsl.finish_callback) if dsl.finish_callback
+    operation.on_update = Callback.new(weak, dsl.update_callback)   if dsl.update_callback
+    operation.on_timeout= Callback.new(weak, dsl.timeout_callback)  if dsl.timeout_callback
 
     operation.timeout = dsl.timeout_interval if dsl.timeout_interval
 

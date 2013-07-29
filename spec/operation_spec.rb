@@ -33,7 +33,7 @@ describe Elevate::ElevateOperation do
         end
         @lock.unlock()
 
-        Dispatch::Queue.main.sync { resume }
+        resume
       end
 
       @queue.addOperation(@operation)

@@ -17,24 +17,13 @@ module Elevate
         @update_callback = nil
         @finish_callback = nil
 
-        setCompletionBlock(lambda do
-          if @finish_callback
-            @finish_callback.call(@result, @exception) unless isCancelled
+        weak = WeakRef.new(self)
+        setCompletionBlock(->{
+          if weak
+            weak.performSelectorOnMainThread(:finalize, withObject: nil, waitUntilDone: true)
+            weak.setCompletionBlock(nil)
           end
-
-          Dispatch::Queue.main.sync do
-            @context = nil
-
-            if @timer
-              @timer.invalidate
-              @timer = nil
-            end
-
-            @timeout_callback = nil
-            @update_callback = nil
-            @finish_callback = nil
-          end
-        end)
+        })
       end
 
       self
@@ -49,6 +38,28 @@ module Elevate
       @coordinator.cancel
 
       super
+    end
+
+    # Releases resources used by this instance.
+    #
+    # @return [void]
+    #
+    # @api private
+    def finalize
+      if @finish_callback
+        @finish_callback.call(@result, @exception) unless isCancelled
+      end
+
+      @context = nil
+
+      if @timer
+        @timer.invalidate
+        @timer = nil
+      end
+
+      @timeout_callback = nil
+      @update_callback = nil
+      @finish_callback = nil
     end
 
     # Returns information about this task.
@@ -147,12 +158,12 @@ module Elevate
     #
     # @api private
     def on_start=(callback)
-      start_callback = callback
-      start_callback.retain
+      weak = WeakRef.new(self)
 
       Dispatch::Queue.main.async do
-        start_callback.call unless isCancelled
-        start_callback.release
+        if weak
+          callback.call unless weak.isCancelled
+        end
       end
     end
 
