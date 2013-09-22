@@ -9,7 +9,7 @@ module HTTP
       @headers = nil
       @status_code = nil
       @error = nil
-      @raw_body = nil
+      @raw_body = NSMutableData.alloc.init
       @url = nil
     end
 
@@ -17,7 +17,6 @@ module HTTP
     #
     # @api private
     def append_data(data)
-      @raw_body ||= NSMutableData.alloc.init
       @raw_body.appendData(data)
     end
 

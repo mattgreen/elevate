@@ -1,159 +1,206 @@
-module Bacon
-  class Context
-    include ::Elevate
+class TestController
+  include Elevate
+
+  def initialize
+    @invocations = {}
+    @counter = 0
+    @threads = []
+    @updates = []
+  end
+
+  attr_accessor :started
+  attr_accessor :result
+  attr_accessor :exception
+  attr_accessor :invocations
+  attr_accessor :counter
+  attr_accessor :threads
+  attr_accessor :updates
+
+  task :test_task do
+    task do
+      sleep 0.05
+      yield 1
+      sleep 0.1
+      yield 2
+
+      42
+    end
+
+    on_start do
+      self.invocations[:start] = counter
+      self.counter += 1
+
+      self.threads << NSThread.currentThread
+    end
+
+    on_update do |num|
+      self.updates << num
+
+      self.invocations[:update] = counter
+      self.counter += 1
+
+      self.threads << NSThread.currentThread
+    end
+
+    on_finish do |result, exception|
+      self.invocations[:finish] = counter
+      self.counter += 1
+
+      self.threads << NSThread.currentThread
+
+      self.result = result
+      self.exception = exception
+
+      #Dispatch::Queue.main.async { resume }
+    end
   end
 end
 
 describe Elevate do
   extend WebStub::SpecHelpers
 
-  describe "#async" do
-    it "runs the specified task asynchronously" do
-      async do
-        task do
-          true
-        end
+  before do
+    @controller = TestController.new
+  end
 
-        on_finish do |result, exception|
-          @called = result
-          resume
-        end
-      end
+  describe "#launch" do
+    it "runs the task asynchronously, returning the result" do
+      @controller.launch(:test_task)
 
-      wait_max 1.0 do
-        @called.should.be.true
-      end
-    end
-
-    it "passes provided args to the task as instance variables" do
-      async name: "harry" do
-        task do
-          @name
-        end
-
-        on_finish do |name, exception|
-          @result = name
-          resume
-        end
-      end
-
-      wait_max 1.0 do
-        @result.should == "harry"
+      wait 0.5 do
+        @controller.result.should == 42
       end
     end
 
     it "allows tasks to report progress" do
-      @updates = []
+      @controller.launch(:test_task)
 
-      async do
-        task do
-          sleep 0.1
-          yield 1
-          sleep 0.2
-          yield 2
-          sleep 0.3
-          yield 3
-
-          true
-        end
-
-        on_update do |count|
-          @updates << count
-        end
-
-        on_finish do |result, exception|
-          resume
-        end
-      end
-
-      wait_max 1.0 do
-        @updates.should == [1,2,3]
+      wait 0.5 do
+        @controller.updates.should == [1, 2]
       end
     end
 
-    describe "timeouts" do
-      before do
-        stub_request(:get, "http://example.com/").
-          to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
+    it "invokes all callbacks on the UI thread" do
+      @controller.launch(:test_task)
+
+      wait 0.5 do
+        @controller.threads.each { |t| t.isMainThread.should.be.true }
       end
+    end
 
-      it "does not cancel the operation if it completes in time" do
-        @timed_out = false
+    it "invokes on_start before on_finish" do
+      @controller.launch(:test_task)
 
-        async do
-          timeout 3.0
-
-          task do
-            Elevate::HTTP.get("http://example.com/")
-
-            "finished"
-          end
-
-          on_finish do |result, exception|
-            @result = result
-            resume
-          end
-        end
-
-        wait_max 5.0 do
-          @result.should == "finished"
-          @timed_out.should.be.false
-        end
+      wait 0.5 do
+        @controller.invocations[:start].should < @controller.invocations[:finish]
       end
+    end
 
-      it "stops the operation when timeout interval has elapsed" do
-        @result = nil
+    it "invokes on_update before on_finish" do
+      @controller.launch(:test_task)
 
-        @task = async do
-          timeout 0.5
+      wait 0.5 do
+        invocations = @controller.invocations
 
-          task do
-            Elevate::HTTP.get("http://example.com/")
-
-            "finished"
-          end
-
-          on_finish do |result, exception|
-            @result = result
-            resume
-          end
-        end
-
-        wait_max 5.0 do
-          @result.should.not == "finished"
-
-          @task.timed_out?.should.be.true
-        end
+        invocations[:update].should < invocations[:finish]
       end
+    end
 
-      it "invokes on_timeout when a timeout occurs" do
-        @result = ""
-        @timed_out = false
+    it "invokes on_update after on_start" do
+      @controller.launch(:test_task)
 
-        async do
-          timeout 0.5
+      wait 0.5 do
+        invocations = @controller.invocations
 
-          task do
-            Elevate::HTTP.get("http://example.com/")
-
-            "finished"
-          end
-
-          on_timeout do
-            @timed_out = true
-          end
-
-          on_finish do |result, exception|
-            @result = result
-            resume
-          end
-        end
-
-        wait_max 5.0 do
-          @result.should.not == "finished"
-          @timed_out.should.be.true
-        end
+        invocations[:update].should > invocations[:start]
       end
     end
   end
+
+  #describe "#async" do
+    #describe "timeouts" do
+      #before do
+        #stub_request(:get, "http://example.com/").
+          #to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
+      #end
+
+      #it "does not cancel the operation if it completes in time" do
+        #@timed_out = false
+
+        #async do
+          #timeout 3.0
+
+          #task do
+            #Elevate::HTTP.get("http://example.com/")
+
+            #"finished"
+          #end
+
+          #on_finish do |result, exception|
+            #@result = result
+            #resume
+          #end
+        #end
+
+        #wait_max 5.0 do
+          #@result.should == "finished"
+          #@timed_out.should.be.false
+        #end
+      #end
+
+      #it "stops the operation when timeout interval has elapsed" do
+        #@result = nil
+
+        #@task = async do
+          #timeout 0.5
+
+          #task do
+            #Elevate::HTTP.get("http://example.com/")
+
+            #"finished"
+          #end
+
+          #on_finish do |result, exception|
+            #@result = result
+            #resume
+          #end
+        #end
+
+        #wait_max 5.0 do
+          #@result.should.not == "finished"
+
+          #@task.timed_out?.should.be.true
+        #end
+      #end
+
+      #it "invokes on_timeout when a timeout occurs" do
+        #@result = ""
+        #@timed_out = false
+
+        #async do
+          #timeout 0.5
+
+          #task do
+            #Elevate::HTTP.get("http://example.com/")
+
+            #"finished"
+          #end
+
+          #on_timeout do
+            #@timed_out = true
+          #end
+
+          #on_finish do |result, exception|
+            #@result = result
+            #resume
+          #end
+        #end
+
+        #wait_max 5.0 do
+          #@result.should.not == "finished"
+          #@timed_out.should.be.true
+        #end
+      #end
+    #end
+  #end
 end

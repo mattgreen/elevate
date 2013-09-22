@@ -1,9 +1,12 @@
 module Elevate
-  class DSL
-    def initialize(&block)
+  class TaskDefinition
+    def initialize(options, &block)
+      @options = options
+
       instance_eval(&block)
     end
 
+    attr_reader :options
     attr_reader :finish_callback
     attr_reader :start_callback
     attr_reader :task_callback
