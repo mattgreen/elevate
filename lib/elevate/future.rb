@@ -1,28 +1,28 @@
 module Elevate
-  class Promise
+  class Future
     OUTSTANDING = 0
     FULFILLED = 1
 
     def initialize
       @lock = NSConditionLock.alloc.initWithCondition(OUTSTANDING)
-      @result = nil
+      @value = nil
     end
 
-    def fulfill(result)
+    def fulfill(value)
       if @lock.tryLockWhenCondition(OUTSTANDING)
-        @result = result
+        @value = value
         @lock.unlockWithCondition(FULFILLED)
       end
     end
 
     def value
-      result = nil
+      value = nil
 
       @lock.lockWhenCondition(FULFILLED)
-      result = @result
+      value = @value
       @lock.unlockWithCondition(FULFILLED)
 
-      result
+      value
     end
   end
 end

@@ -81,7 +81,7 @@ module HTTP
       @response.url = url
 
       @connection = nil
-      @promise = Promise.new
+      @future = Future.new
     end
 
     # Cancels an in-flight request.
@@ -97,7 +97,7 @@ module HTTP
       NetworkThread.cancel(@connection) if @connection
       ActivityIndicator.instance.hide
 
-      @promise.fulfill(nil)
+      @future.fulfill(nil)
     end
 
     # Returns a response to this request, sending it if necessary
@@ -113,7 +113,7 @@ module HTTP
         send
       end
 
-      @promise.value
+      @future.value
     end
 
     # Sends this request. The caller is not blocked.
@@ -171,7 +171,7 @@ module HTTP
       response = @response
       @response = nil
 
-      @promise.fulfill(response)
+      @future.fulfill(response)
     end
 
     def connectionDidFinishLoading(connection)
@@ -182,7 +182,7 @@ module HTTP
       response = @response
       @response = nil
 
-      @promise.fulfill(response)
+      @future.fulfill(response)
     end
 
     def connection(connection, willSendRequest: request, redirectResponse: response)
