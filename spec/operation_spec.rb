@@ -1,7 +1,7 @@
 describe Elevate::ElevateOperation do
   before do
     @target = lambda { @result }
-    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, update: nil)
+    @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, channel: nil)
     @queue = NSOperationQueue.alloc.init
   end
 
@@ -55,7 +55,7 @@ describe Elevate::ElevateOperation do
     describe "when an exception is raised" do
       it "returns the exception" do
         @target = lambda { raise IndexError }
-        @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, update: nil)
+        @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, channel: nil)
 
         @queue.addOperation(@operation)
         @operation.waitUntilFinished()
@@ -68,7 +68,7 @@ describe Elevate::ElevateOperation do
   describe "#result" do
     before do
       @target = lambda { 42 }
-      @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, update: nil)
+      @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, channel: nil)
     end
 
     describe "before starting the operation" do
@@ -94,37 +94,6 @@ describe Elevate::ElevateOperation do
         @operation.waitUntilFinished()
 
         @operation.result.should == 42
-      end
-    end
-  end
-
-  describe "update_callback" do
-    before do
-      @yielded = {}
-
-      @callback = lambda do |arg|
-        @yielded[:thread] = NSThread.currentThread
-        @yielded[:args] = arg
-
-        Dispatch::Queue.main.async do
-          resume
-        end
-      end
-
-      @target = lambda { yield 42 }
-      @operation = Elevate::ElevateOperation.alloc.initWithTarget(@target, args: {}, update: @callback)
-      @queue.addOperation(@operation)
-    end
-
-    it "invokes the block on the UI thread" do
-      wait_max 0.5 do
-        @yielded[:thread].should == NSThread.mainThread
-      end
-    end
-
-    it "invokes the block with whatever was yielded" do
-      wait_max 0.5 do
-        @yielded[:args].should == 42
       end
     end
   end

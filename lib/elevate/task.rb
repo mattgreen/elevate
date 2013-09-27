@@ -4,6 +4,7 @@ module Elevate
       @controller = WeakRef.new(controller)
       @active_tasks = active_tasks
       @operation = nil
+      @channel = Channel.new(method(:on_update))
 
       @body = body
       @on_start = nil
@@ -30,7 +31,7 @@ module Elevate
     end
 
     def start(args)
-      @operation = ElevateOperation.alloc.initWithTarget(@body, args: args, update: method(:on_update))
+      @operation = ElevateOperation.alloc.initWithTarget(@body, args: args, channel: @channel)
 
       @operation.addObserver(self, forKeyPath: "isFinished", options: NSKeyValueObservingOptionNew, context: nil)
       queue.addOperation(@operation)
@@ -58,20 +59,16 @@ module Elevate
     end
 
     def on_start
-      autorelease_pool do
-        if @on_start
-          @controller.instance_eval(&@on_start)
-          @on_start = nil
-        end
+      if @on_start
+        @controller.instance_eval(&@on_start)
+        @on_start = nil
       end
     end
 
     def on_finish
-      autorelease_pool do
-        if @on_finish
-          @controller.instance_exec(@operation.result, @operation.exception, &@on_finish)
-          @on_finish = nil
-        end
+      if @on_finish
+        @controller.instance_exec(@operation.result, @operation.exception, &@on_finish)
+        @on_finish = nil
       end
 
       @operation.removeObserver(self, forKeyPath: "isFinished")
@@ -80,7 +77,12 @@ module Elevate
       @active_tasks.delete(self)
     end
 
-    def on_update(*args)
+    def on_update(args)
+      unless NSThread.isMainThread
+        performSelectorOnMainThread(:"on_update:", withObject: args, waitUntilDone: false)
+        return
+      end
+
       @controller.instance_exec(*args, &@on_update) if @on_update
     end
   end

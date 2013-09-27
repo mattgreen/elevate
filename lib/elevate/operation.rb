@@ -8,11 +8,11 @@ module Elevate
     #   newly initialized instance
     #
     # @api private
-    def initWithTarget(target, args: args, update: update_callback)
+    def initWithTarget(target, args: args, channel: channel)
       if init
         @coordinator = IOCoordinator.new
         @context = TaskContext.new(target, args)
-        @update_callback = update_callback
+        @channel = WeakRef.new(channel)
       end
 
       self
@@ -29,15 +29,6 @@ module Elevate
       super
     end
 
-    def invoke_update_callback(args)
-      unless NSThread.isMainThread
-        performSelectorOnMainThread(:"invoke_update_callback:", withObject: args, waitUntilDone: true)
-        return
-      end
-
-      @update_callback.call(*args)
-    end
-
     # Runs the specified task.
     #
     # @return [void]
@@ -49,7 +40,7 @@ module Elevate
       begin
         unless @coordinator.cancelled?
           @result = @context.execute do |*args|
-            invoke_update_callback(args) if @update_callback
+            @channel << args if @channel
           end
         end
 
@@ -60,7 +51,6 @@ module Elevate
       @coordinator.uninstall
 
       @context = nil
-      @update_callback = nil
     end
 
     # Returns the exception that terminated this task, if any.
