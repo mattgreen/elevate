@@ -5,11 +5,7 @@ module Elevate
       @active_tasks = active_tasks
       @operation = nil
       @channel = Channel.new(method(:on_update))
-
-      @body = body
-      @on_start = nil
-      @on_finish = nil
-      @on_update = nil
+      @handlers = { body: body }
     end
 
     def cancel
@@ -19,19 +15,19 @@ module Elevate
     end
 
     def on_finish=(block)
-      @on_finish = block
+      @handlers[:on_finish] = block
     end
 
     def on_start=(block)
-      @on_start = block
+      @handlers[:on_start] = block
     end
 
     def on_update=(block)
-      @on_update = block
+      @handlers[:on_update] = block
     end
 
     def start(args)
-      @operation = ElevateOperation.alloc.initWithTarget(@body, args: args, channel: @channel)
+      @operation = ElevateOperation.alloc.initWithTarget(@handlers[:body], args: args, channel: @channel)
 
       @operation.addObserver(self, forKeyPath: "isFinished", options: NSKeyValueObservingOptionNew, context: nil)
       queue.addOperation(@operation)
@@ -59,22 +55,22 @@ module Elevate
     end
 
     def on_start
-      if @on_start
-        @controller.instance_eval(&@on_start)
-        @on_start = nil
+      if handler = @handlers[:on_start]
+        @controller.instance_eval(&handler)
       end
     end
 
     def on_finish
-      if @on_finish
-        @controller.instance_exec(@operation.result, @operation.exception, &@on_finish)
-        @on_finish = nil
-      end
+      operation = @operation
 
       @operation.removeObserver(self, forKeyPath: "isFinished")
       @operation = nil
 
       @active_tasks.delete(self)
+
+      if handler = @handlers[:on_finish]
+        @controller.instance_exec(operation.result, operation.exception, &handler)
+      end
     end
 
     def on_update(args)
@@ -83,7 +79,9 @@ module Elevate
         return
       end
 
-      @controller.instance_exec(*args, &@on_update) if @on_update
+      if handler = @handlers[:on_update]
+        @controller.instance_exec(*args, &handler)
+      end
     end
   end
 end
