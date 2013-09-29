@@ -1,11 +1,11 @@
 module Elevate
   class Task
-    def initialize(controller, active_tasks, body)
+    def initialize(controller, active_tasks, handlers)
       @controller = WeakRef.new(controller)
       @active_tasks = active_tasks
       @operation = nil
       @channel = Channel.new(method(:on_update))
-      @handlers = { body: body }
+      @handlers = handlers
     end
 
     def cancel
@@ -27,7 +27,11 @@ module Elevate
     end
 
     def start(args)
-      @operation = ElevateOperation.alloc.initWithTarget(@handlers[:body], args: args, channel: @channel)
+      raise "invalid argument count" if args.length != @handlers[:body].arity
+
+      @operation = ElevateOperation.alloc.initWithTarget(@handlers[:body],
+                                                         args: args,
+                                                         channel: WeakRef.new(@channel))
 
       @operation.addObserver(self, forKeyPath: "isFinished", options: NSKeyValueObservingOptionNew, context: nil)
       queue.addOperation(@operation)
@@ -37,6 +41,12 @@ module Elevate
     end
 
     private
+
+    def invoke(block, *args)
+      return unless block
+
+      @controller.instance_exec(*args, &block)
+    end
 
     def queue
       Dispatch.once do
@@ -55,9 +65,7 @@ module Elevate
     end
 
     def on_start
-      if handler = @handlers[:on_start]
-        @controller.instance_eval(&handler)
-      end
+      invoke(@handlers[:on_start])
     end
 
     def on_finish
@@ -68,9 +76,11 @@ module Elevate
 
       @active_tasks.delete(self)
 
-      if handler = @handlers[:on_finish]
-        @controller.instance_exec(operation.result, operation.exception, &handler)
+      if exception = operation.exception
+        invoke(@handlers[:on_error], exception)
       end
+
+      invoke(@handlers[:on_finish], operation.result, operation.exception)
     end
 
     def on_update(args)
@@ -79,9 +89,7 @@ module Elevate
         return
       end
 
-      if handler = @handlers[:on_update]
-        @controller.instance_exec(*args, &handler)
-      end
+      invoke(@handlers[:on_update], *args)
     end
   end
 end

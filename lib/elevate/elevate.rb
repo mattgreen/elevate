@@ -27,13 +27,10 @@ module Elevate
     end
   end
 
-  def launch(name, args = {})
+  def launch(name, *args)
     definition = self.class.task_definitions[name.to_sym]
 
-    task = Task.new(self, active_tasks, definition.task_callback)
-    task.on_start = definition.start_callback
-    task.on_finish = definition.finish_callback
-    task.on_update = definition.update_callback
+    task = Task.new(self, active_tasks, definition.handlers)
     task.start(args)
 
     task

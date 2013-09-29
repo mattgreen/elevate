@@ -17,9 +17,10 @@ class TestController
   attr_accessor :updates
 
   task :test_task do
-    task do
+    task do |should_raise|
       sleep 0.05
       yield 1
+      raise Elevate::TimeoutError if should_raise
       sleep 0.1
       yield 2
 
@@ -65,7 +66,7 @@ describe Elevate do
 
   describe "#launch" do
     it "runs the task asynchronously, returning the result" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         @controller.result.should == 42
@@ -73,7 +74,7 @@ describe Elevate do
     end
 
     it "allows tasks to report progress" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         @controller.updates.should == [1, 2]
@@ -81,7 +82,7 @@ describe Elevate do
     end
 
     it "invokes all callbacks on the UI thread" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         @controller.threads.each { |t| t.isMainThread.should.be.true }
@@ -89,7 +90,7 @@ describe Elevate do
     end
 
     it "invokes on_start before on_finish" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         @controller.invocations[:start].should < @controller.invocations[:finish]
@@ -97,7 +98,7 @@ describe Elevate do
     end
 
     it "invokes on_update before on_finish" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         invocations = @controller.invocations
@@ -107,7 +108,7 @@ describe Elevate do
     end
 
     it "invokes on_update after on_start" do
-      @controller.launch(:test_task)
+      @controller.launch(:test_task, false)
 
       wait 0.5 do
         invocations = @controller.invocations

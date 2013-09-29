@@ -12,7 +12,8 @@ module Elevate
       if init
         @coordinator = IOCoordinator.new
         @context = TaskContext.new(target, args)
-        @channel = WeakRef.new(channel)
+        @channel = channel
+        @args = args
       end
 
       self
@@ -39,7 +40,7 @@ module Elevate
 
       begin
         unless @coordinator.cancelled?
-          @result = @context.execute do |*args|
+          @result = @context.execute(*@args) do |*args|
             @channel << args if @channel
           end
         end
