@@ -1,11 +1,12 @@
 module Elevate
   class Task
-    def initialize(controller, active_tasks, handlers)
+    def initialize(definition, controller, active_tasks)
+      @name = definition.name
       @controller = WeakRef.new(controller)
       @active_tasks = active_tasks
       @operation = nil
       @channel = Channel.new(method(:on_update))
-      @handlers = handlers
+      @handlers = definition.handlers
     end
 
     def cancel
@@ -13,6 +14,8 @@ module Elevate
         @operation.cancel
       end
     end
+
+    attr_reader :name
 
     def on_finish=(block)
       @handlers[:on_finish] = block
@@ -43,6 +46,7 @@ module Elevate
     private
 
     def invoke(block, *args)
+      return if @operation.isCancelled
       return unless block
 
       @controller.instance_exec(*args, &block)
@@ -69,18 +73,15 @@ module Elevate
     end
 
     def on_finish
-      operation = @operation
-
       @operation.removeObserver(self, forKeyPath: "isFinished")
-      @operation = nil
 
       @active_tasks.delete(self)
 
-      if exception = operation.exception
+      if exception = @operation.exception
         invoke(@handlers[:on_error], exception)
       end
 
-      invoke(@handlers[:on_finish], operation.result, operation.exception)
+      invoke(@handlers[:on_finish], @operation.result, @operation.exception)
     end
 
     def on_update(args)

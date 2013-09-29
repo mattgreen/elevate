@@ -1,12 +1,14 @@
 module Elevate
   class TaskDefinition
-    def initialize(options, &block)
-      @handlers = {}
+    def initialize(name, options, &block)
+      @name = name
       @options = options
+      @handlers = {}
 
       instance_eval(&block)
     end
 
+    attr_reader :name
     attr_reader :handlers
     attr_reader :options
 

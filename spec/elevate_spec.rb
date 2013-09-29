@@ -16,6 +16,30 @@ class TestController
   attr_accessor :threads
   attr_accessor :updates
 
+  task :cancellable do
+    task do |semaphore|
+      semaphore.wait
+      yield 42
+
+      nil
+    end
+
+    on_start do
+      self.invocations[:start] = counter
+      self.counter += 1
+    end
+
+    on_finish do |result, ex|
+      self.invocations[:finish] = counter
+      self.counter += 1
+    end
+
+    on_update do |n|
+      self.invocations[:update] = counter
+      self.counter += 1
+    end
+  end
+
   task :test_task do
     task do |should_raise|
       sleep 0.05
@@ -62,6 +86,48 @@ describe Elevate do
 
   before do
     @controller = TestController.new
+  end
+
+  describe "#cancel" do
+    describe "when no tasks are running" do
+      it "does nothing" do
+        ->{ @controller.cancel(:test_task) }.should.not.raise
+      end
+    end
+
+    describe "when a single task is running" do
+      it "cancels the task and does not invoke callbacks" do
+        semaphore = Dispatch::Semaphore.new(0)
+        @controller.launch(:cancellable, semaphore)
+
+        @controller.cancel(:cancellable)
+        semaphore.signal
+
+        wait 0.5 do
+          @controller.invocations[:update].should.be.nil
+          @controller.invocations[:finish].should.be.nil
+        end
+      end
+    end
+
+    describe "when several tasks are running" do
+      it "cancels all of them" do
+        semaphore = Dispatch::Semaphore.new(0)
+
+        @controller.launch(:cancellable, semaphore)
+        @controller.launch(:cancellable, semaphore)
+        @controller.launch(:cancellable, semaphore)
+
+        @controller.cancel(:cancellable)
+        semaphore.signal
+
+        wait 0.5 do
+          @controller.invocations[:update].should.be.nil
+          @controller.invocations[:finish].should.be.nil
+        end
+
+      end
+    end
   end
 
   describe "#launch" do

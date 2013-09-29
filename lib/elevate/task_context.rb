@@ -6,13 +6,9 @@ module Elevate
   #
   # @api private
   class TaskContext
-    def initialize(block, args)
+    def initialize(block)
       metaclass = class << self; self; end
       metaclass.send(:define_method, :execute, &block)
-
-      args.each do |key, value|
-        instance_variable_set("@#{key}", value)
-      end
     end
   end
 end

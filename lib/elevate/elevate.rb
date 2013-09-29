@@ -5,7 +5,7 @@ module Elevate
 
   module ClassMethods
     def task(name, options = {}, &block)
-      task_definitions[name.to_sym] = TaskDefinition.new(options, &block)
+      task_definitions[name.to_sym] = TaskDefinition.new(name.to_sym, options, &block)
     end
 
     def task_definitions
@@ -30,7 +30,7 @@ module Elevate
   def launch(name, *args)
     definition = self.class.task_definitions[name.to_sym]
 
-    task = Task.new(self, active_tasks, definition.handlers)
+    task = Task.new(definition, self, active_tasks)
     task.start(args)
 
     task
