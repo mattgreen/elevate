@@ -45,6 +45,16 @@ module Elevate
 
     private
 
+    def error_handler_for(exception)
+      handler_name = exception.class.name
+      handler_name = handler_name.split("::").last
+      handler_name.gsub!(/Error$/, "")
+      handler_name.gsub!(/(.)([A-Z])/) { |m| "#{$1}_#{$2.downcase}" }
+      handler_name = "on_" + handler_name.downcase
+
+      handler_name.to_sym
+    end
+
     def invoke(block, *args)
       return if @operation.isCancelled
       return unless block
@@ -78,7 +88,7 @@ module Elevate
       @active_tasks.delete(self)
 
       if exception = @operation.exception
-        invoke(@handlers[:on_error], exception)
+        invoke(@handlers.fetch(error_handler_for(exception), @handlers[:on_error]), exception)
       end
 
       invoke(@handlers[:on_finish], @operation.result, @operation.exception)

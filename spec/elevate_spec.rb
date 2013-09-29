@@ -40,6 +40,22 @@ class TestController
     end
   end
 
+  task :custom_error_handlers do
+    task do
+      raise TimeoutError
+    end
+
+    on_error do |e|
+      self.invocations[:error] = counter
+      self.counter += 1
+    end
+
+    on_timeout do |e|
+      self.invocations[:timeout] = counter
+      self.counter += 1
+    end
+  end
+
   task :test_task do
     task do |should_raise|
       sleep 0.05
@@ -65,6 +81,11 @@ class TestController
       self.counter += 1
 
       self.threads << NSThread.currentThread
+    end
+
+    on_error do |e|
+      self.invocations[:error] = counter
+      self.counter += 1
     end
 
     on_finish do |result, exception|
@@ -155,6 +176,14 @@ describe Elevate do
       end
     end
 
+    it "invokes on_error when an exception occurs" do
+      @controller.launch(:test_task, true)
+
+      wait 0.5 do
+        @controller.invocations[:error].should.not.be.nil
+      end
+    end
+
     it "invokes on_start before on_finish" do
       @controller.launch(:test_task, false)
 
@@ -180,6 +209,19 @@ describe Elevate do
         invocations = @controller.invocations
 
         invocations[:update].should > invocations[:start]
+      end
+    end
+  end
+
+  describe 'error handling' do
+    it "invokes specific error handlers" do
+      @controller.launch(:custom_error_handlers)
+
+      wait 0.5 do
+        invocations = @controller.invocations
+
+        invocations[:timeout].should.not.be.nil
+        invocations[:error].should.be.nil
       end
     end
   end

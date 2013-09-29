@@ -12,6 +12,21 @@ module Elevate
     attr_reader :handlers
     attr_reader :options
 
+    def method_missing(method, *args, &block)
+      if method.to_s.start_with?("on_")
+        raise ArgumentError, "wrong number of arguments" unless args.empty?
+        raise ArgumentError, "block not supplied" unless block_given?
+
+        @handlers[method.to_sym] = block
+      else
+        super
+      end
+    end
+
+    def respond_to_missing?(method, include_private = false)
+      method.to_s.start_with?("on_") || super
+    end
+
     def on_error(&block)
       raise "on_error blocks must accept one parameter" unless block.arity == 1
 
@@ -28,12 +43,6 @@ module Elevate
       raise "on_start blocks must accept zero parameters" unless block.arity == 0
 
       @handlers[:on_start] = block
-    end
-
-    def on_timeout(&block)
-      raise "on_timeout blocks must accept zero parameters" unless block.arity == 0
-
-      @handlers[:on_timeout] = block
     end
 
     def on_update(&block)
