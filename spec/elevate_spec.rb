@@ -100,6 +100,24 @@ class TestController
       #Dispatch::Queue.main.async { resume }
     end
   end
+
+  task :timeout_test do
+    timeout 0.3
+
+    task do
+      Elevate::HTTP.get("http://example.com/")
+    end
+
+    on_timeout do |e|
+      self.invocations[:timeout] = counter
+      self.counter += 1
+    end
+
+    on_finish do |result, ex|
+      self.invocations[:finish] = counter
+      self.counter += 1
+    end
+  end
 end
 
 describe Elevate do
@@ -213,8 +231,8 @@ describe Elevate do
     end
   end
 
-  describe 'error handling' do
-    it "invokes specific error handlers" do
+  describe "error handling" do
+    it "invokes an error handling correspding to the raised exception" do
       @controller.launch(:custom_error_handlers)
 
       wait 0.5 do
@@ -224,92 +242,52 @@ describe Elevate do
         invocations[:error].should.be.nil
       end
     end
+
+    it "invokes on_error if there is not a specific handler" do
+      @controller.launch(:test_task, true)
+
+      wait 0.5 do
+        invocations = @controller.invocations
+
+        invocations[:error].should.not.be.nil
+      end
+    end
   end
 
-  #describe "#async" do
-    #describe "timeouts" do
-      #before do
-        #stub_request(:get, "http://example.com/").
-          #to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
-      #end
+  describe "timeouts" do
+    it "does not cancel the operation if it completes in time" do
+      stub_request(:get, "http://example.com/").
+        to_return(body: "Hello!", content_type: "text/plain")
 
-      #it "does not cancel the operation if it completes in time" do
-        #@timed_out = false
+      @controller.launch(:timeout_test)
 
-        #async do
-          #timeout 3.0
+      wait 0.5 do
+        @controller.invocations[:timeout].should.be.nil
+        @controller.invocations[:finish].should.not.be.nil
+      end
+    end
 
-          #task do
-            #Elevate::HTTP.get("http://example.com/")
+    it "stops the operation when it exceeds the timeout" do
+      stub_request(:get, "http://example.com/").
+        to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
 
-            #"finished"
-          #end
+      @controller.launch(:timeout_test)
 
-          #on_finish do |result, exception|
-            #@result = result
-            #resume
-          #end
-        #end
+      wait 0.5 do
+        @controller.invocations[:finish].should.not.be.nil
+      end
+    end
 
-        #wait_max 5.0 do
-          #@result.should == "finished"
-          #@timed_out.should.be.false
-        #end
-      #end
+    it "invokes on_timeout when the operation times out" do
+      stub_request(:get, "http://example.com/").
+        to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
 
-      #it "stops the operation when timeout interval has elapsed" do
-        #@result = nil
+      @controller.launch(:timeout_test)
 
-        #@task = async do
-          #timeout 0.5
+      wait 0.5 do
+        @controller.invocations[:timeout].should.not.be.nil
+      end
 
-          #task do
-            #Elevate::HTTP.get("http://example.com/")
-
-            #"finished"
-          #end
-
-          #on_finish do |result, exception|
-            #@result = result
-            #resume
-          #end
-        #end
-
-        #wait_max 5.0 do
-          #@result.should.not == "finished"
-
-          #@task.timed_out?.should.be.true
-        #end
-      #end
-
-      #it "invokes on_timeout when a timeout occurs" do
-        #@result = ""
-        #@timed_out = false
-
-        #async do
-          #timeout 0.5
-
-          #task do
-            #Elevate::HTTP.get("http://example.com/")
-
-            #"finished"
-          #end
-
-          #on_timeout do
-            #@timed_out = true
-          #end
-
-          #on_finish do |result, exception|
-            #@result = result
-            #resume
-          #end
-        #end
-
-        #wait_max 5.0 do
-          #@result.should.not == "finished"
-          #@timed_out.should.be.true
-        #end
-      #end
-    #end
-  #end
+    end
+  end
 end

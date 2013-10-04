@@ -73,5 +73,15 @@ module Elevate
     #
     # @api public
     attr_reader :result
+
+    # Cancels any waiting operation with a TimeoutError, interrupting
+    # execution. This is not the same as #cancel.
+    #
+    # @return [void]
+    #
+    # @api public
+    def timeout
+      @coordinator.cancel(TimeoutError)
+    end
   end
 end
