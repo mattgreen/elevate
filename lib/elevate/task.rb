@@ -24,9 +24,10 @@ module Elevate
     end
 
     def start(args)
-      raise "invalid argument count" if args.length != handlers[:body].arity
+      target = @definition.handlers[:body]
+      raise "invalid argument count" if args.length != target.arity
 
-      @operation = ElevateOperation.alloc.initWithTarget(handlers[:body],
+      @operation = ElevateOperation.alloc.initWithTarget(target,
                                                          args: args,
                                                          channel: WeakRef.new(@channel))
 
@@ -57,15 +58,15 @@ module Elevate
       handler_name.to_sym
     end
 
-    def handlers
-      @definition.handlers
-    end
+    def invoke(handler_name, *args)
+      return false if @operation.isCancelled
 
-    def invoke(block, *args)
-      return if @operation.cancelled?
-      return unless block
+      block = @definition.handlers[handler_name]
+      return false unless block
 
       @controller.instance_exec(*args, &block)
+
+      true
     end
 
     def queue
@@ -85,7 +86,7 @@ module Elevate
     end
 
     def on_start
-      invoke(handlers[:on_start])
+      invoke(:on_start)
     end
 
     def on_finish
@@ -97,10 +98,10 @@ module Elevate
       end
 
       if exception = @operation.exception
-        invoke(handlers.fetch(error_handler_for(exception), handlers[:on_error]), exception)
+        invoke(error_handler_for(exception), exception) || invoke(:on_error, exception)
       end
 
-      invoke(handlers[:on_finish], @operation.result, @operation.exception)
+      invoke(:on_finish, @operation.result, @operation.exception)
     end
 
     def on_timeout(timer)
@@ -113,7 +114,7 @@ module Elevate
         return
       end
 
-      invoke(handlers[:on_update], *args)
+      invoke(:on_update, *args)
     end
   end
 end
