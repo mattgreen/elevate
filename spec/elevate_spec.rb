@@ -21,7 +21,7 @@ class TestController
   task :cancellable do
     worker do
       task_args[:semaphore].wait
-      yield 42
+      update 42
 
       nil
     end
@@ -61,10 +61,10 @@ class TestController
   task :test_task do
     worker do
       sleep 0.05
-      yield 1
+      update 1
       raise Elevate::TimeoutError if task_args[:raise]
       sleep 0.1
-      yield 2
+      update 2
 
       42
     end

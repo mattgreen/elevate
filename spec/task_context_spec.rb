@@ -3,7 +3,7 @@ describe Elevate::TaskContext do
     it "runs the specified block" do
       result = {}
 
-      context = Elevate::TaskContext.new(->{ result[:ret] = true }, {})
+      context = Elevate::TaskContext.new(->{ result[:ret] = true }, [], {})
       context.execute
 
       result[:ret].should.be.true
