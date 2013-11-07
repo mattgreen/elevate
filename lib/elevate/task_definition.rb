@@ -49,8 +49,8 @@ module Elevate
       @handlers[:on_update] = block
     end
 
-    def task(&block)
-      @handlers[:body] = block
+    def worker(&block)
+      @handlers[:worker] = block
     end
 
     def timeout(seconds)
