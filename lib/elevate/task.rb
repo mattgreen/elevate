@@ -6,6 +6,7 @@ module Elevate
       @active_tasks = active_tasks
       @operation = nil
       @channel = Channel.new(method(:on_update))
+      @args = nil
       @timer = nil
     end
 
@@ -24,16 +25,15 @@ module Elevate
     end
 
     def start(args)
-      target = @definition.handlers[:body]
-      raise "invalid argument count" if args.length != target.arity
-
-      @operation = ElevateOperation.alloc.initWithTarget(target,
+      @operation = ElevateOperation.alloc.initWithTarget(@definition.handlers[:body],
                                                          args: args,
                                                          channel: WeakRef.new(@channel))
 
       @operation.addObserver(self, forKeyPath: "isFinished", options: NSKeyValueObservingOptionNew, context: nil)
       queue.addOperation(@operation)
       @active_tasks << self
+
+      @args = args
 
       if interval = @definition.options[:timeout_interval]
         @timer = NSTimer.scheduledTimerWithTimeInterval(interval,
@@ -64,7 +64,9 @@ module Elevate
       block = @definition.handlers[handler_name]
       return false unless block
 
+      @controller.task_args = @args
       @controller.instance_exec(*args, &block)
+      @controller.task_args = nil
 
       true
     end

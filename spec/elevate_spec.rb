@@ -6,6 +6,7 @@ class TestController
     @counter = 0
     @threads = []
     @updates = []
+    @callback_args = nil
   end
 
   attr_accessor :started
@@ -15,10 +16,11 @@ class TestController
   attr_accessor :counter
   attr_accessor :threads
   attr_accessor :updates
+  attr_accessor :callback_args
 
   task :cancellable do
-    task do |semaphore|
-      semaphore.wait
+    task do
+      task_args[:semaphore].wait
       yield 42
 
       nil
@@ -57,10 +59,10 @@ class TestController
   end
 
   task :test_task do
-    task do |should_raise|
+    task do
       sleep 0.05
       yield 1
-      raise Elevate::TimeoutError if should_raise
+      raise Elevate::TimeoutError if task_args[:raise]
       sleep 0.1
       yield 2
 
@@ -69,6 +71,7 @@ class TestController
 
     on_start do
       self.invocations[:start] = counter
+      self.callback_args = task_args
       self.counter += 1
 
       self.threads << NSThread.currentThread
@@ -137,7 +140,7 @@ describe Elevate do
     describe "when a single task is running" do
       it "cancels the task and does not invoke callbacks" do
         semaphore = Dispatch::Semaphore.new(0)
-        @controller.launch(:cancellable, semaphore)
+        @controller.launch(:cancellable, semaphore: semaphore)
 
         @controller.cancel(:cancellable)
         semaphore.signal
@@ -153,9 +156,9 @@ describe Elevate do
       it "cancels all of them" do
         semaphore = Dispatch::Semaphore.new(0)
 
-        @controller.launch(:cancellable, semaphore)
-        @controller.launch(:cancellable, semaphore)
-        @controller.launch(:cancellable, semaphore)
+        @controller.launch(:cancellable, semaphore: semaphore)
+        @controller.launch(:cancellable, semaphore: semaphore)
+        @controller.launch(:cancellable, semaphore: semaphore)
 
         @controller.cancel(:cancellable)
         semaphore.signal
@@ -171,7 +174,7 @@ describe Elevate do
 
   describe "#launch" do
     it "runs the task asynchronously, returning the result" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         @controller.result.should == 42
@@ -179,7 +182,7 @@ describe Elevate do
     end
 
     it "allows tasks to report progress" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         @controller.updates.should == [1, 2]
@@ -187,15 +190,23 @@ describe Elevate do
     end
 
     it "invokes all callbacks on the UI thread" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         @controller.threads.each { |t| t.isMainThread.should.be.true }
       end
     end
 
+    it "sets task_args to args used at launch" do
+      @controller.launch(:test_task, raise: true)
+
+      wait 0.5 do
+        @controller.callback_args.should == { raise: true }
+      end
+    end
+
     it "invokes on_error when an exception occurs" do
-      @controller.launch(:test_task, true)
+      @controller.launch(:test_task, raise: true)
 
       wait 0.5 do
         @controller.invocations[:error].should.not.be.nil
@@ -203,7 +214,7 @@ describe Elevate do
     end
 
     it "invokes on_start before on_finish" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         @controller.invocations[:start].should < @controller.invocations[:finish]
@@ -211,7 +222,7 @@ describe Elevate do
     end
 
     it "invokes on_update before on_finish" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         invocations = @controller.invocations
@@ -221,7 +232,7 @@ describe Elevate do
     end
 
     it "invokes on_update after on_start" do
-      @controller.launch(:test_task, false)
+      @controller.launch(:test_task, raise: false)
 
       wait 0.5 do
         invocations = @controller.invocations
@@ -244,7 +255,7 @@ describe Elevate do
     end
 
     it "invokes on_error if there is not a specific handler" do
-      @controller.launch(:test_task, true)
+      @controller.launch(:test_task, raise: true)
 
       wait 0.5 do
         invocations = @controller.invocations

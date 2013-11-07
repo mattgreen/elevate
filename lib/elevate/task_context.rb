@@ -6,9 +6,15 @@ module Elevate
   #
   # @api private
   class TaskContext
-    def initialize(block)
+    def initialize(block, args)
+      @__args = args
+
       metaclass = class << self; self; end
       metaclass.send(:define_method, :execute, &block)
+    end
+
+    def task_args
+      @__args
     end
   end
 end

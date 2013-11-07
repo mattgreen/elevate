@@ -27,7 +27,9 @@ module Elevate
     end
   end
 
-  def launch(name, *args)
+  def launch(name, args = {})
+    raise ArgumentError, "args must be a Hash" unless args.is_a? Hash
+
     definition = self.class.task_definitions[name.to_sym]
 
     task = Task.new(definition, self, active_tasks)
@@ -36,9 +38,17 @@ module Elevate
     task
   end
 
+  def task_args
+    @__elevate_task_args
+  end
+
+  def task_args=(args)
+    @__elevate_task_args = args
+  end
+
   private
 
   def active_tasks
-    @__active_tasks ||= []
+    @__elevate_active_tasks ||= []
   end
 end

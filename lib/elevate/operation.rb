@@ -11,9 +11,8 @@ module Elevate
     def initWithTarget(target, args: args, channel: channel)
       if init
         @coordinator = IOCoordinator.new
-        @context = TaskContext.new(target)
+        @context = TaskContext.new(target, args)
         @channel = channel
-        @args = args
       end
 
       self
@@ -40,7 +39,7 @@ module Elevate
 
       begin
         unless @coordinator.cancelled?
-          @result = @context.execute(*@args) do |*args|
+          @result = @context.execute do |*args|
             @channel << args if @channel
           end
         end
