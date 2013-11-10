@@ -25,7 +25,7 @@ module Elevate
     end
 
     def start(args)
-      @operation = ElevateOperation.alloc.initWithTarget(@definition.handlers[:worker],
+      @operation = ElevateOperation.alloc.initWithTarget(@definition.handlers[:background],
                                                          args: args,
                                                          channel: WeakRef.new(@channel))
 

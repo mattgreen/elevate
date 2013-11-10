@@ -19,7 +19,7 @@ class TestController
   attr_accessor :callback_args
 
   task :cancellable do
-    worker do
+    background do
       task_args[:semaphore].wait
       update 42
 
@@ -43,7 +43,7 @@ class TestController
   end
 
   task :custom_error_handlers do
-    worker do
+    background do
       raise TimeoutError
     end
 
@@ -59,7 +59,7 @@ class TestController
   end
 
   task :test_task do
-    worker do
+    background do
       sleep 0.05
       update 1
       raise Elevate::TimeoutError if task_args[:raise]
@@ -107,7 +107,7 @@ class TestController
   task :timeout_test do
     timeout 0.3
 
-    worker do
+    background do
       Elevate::HTTP.get("http://example.com/")
     end
 

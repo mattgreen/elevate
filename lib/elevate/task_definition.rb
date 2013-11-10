@@ -27,6 +27,10 @@ module Elevate
       method.to_s.start_with?("on_") || super
     end
 
+    def background(&block)
+      @handlers[:background] = block
+    end
+
     def on_error(&block)
       raise "on_error blocks must accept one parameter" unless block.arity == 1
 
@@ -47,10 +51,6 @@ module Elevate
 
     def on_update(&block)
       @handlers[:on_update] = block
-    end
-
-    def worker(&block)
-      @handlers[:worker] = block
     end
 
     def timeout(seconds)
