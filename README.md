@@ -1,161 +1,113 @@
 Elevate
 ======
 
-Stop scattering your domain logic across your view controller. Consolidate it to a single conceptual unit with Elevate.
+Are you suffering from symptoms of Massive View Controller?
+
+Use Elevate to elegantly decompose tasks, and give your view controller a break.
 
 [![Code Climate](https://codeclimate.com/github/mattgreen/elevate.png)](https://codeclimate.com/github/mattgreen/elevate) [![Travis](https://api.travis-ci.org/mattgreen/elevate.png)](https://travis-ci.org/mattgreen/elevate) [![Gem Version](https://badge.fury.io/rb/elevate.png)](http://badge.fury.io/rb/elevate)
 
-Example
--------
+
+Introduction
+------------
+Your poor, poor view controllers. They do *so* much for you, and yet you keep giving them more to do:
+
+* Handle user input
+* Update the UI in response to that input
+* Request data from web services
+* Load/save/query your model layer
+
+Elevate is designed to assist your view controller in tackling this complexity. It does this by breaking these concerns apart in a clean fashion. Rather than lumping the unique behavior of your view controller in with the more pedestrian UI handling, Elevate organizes your domain logic (that is, what the controller actually *does*) and the UI updates together.
+
+What do I mean? Let's look at an example.
 
 ```ruby
-@login_task = async username: username.text, password: password.text do
-  # This block runs on a background thread.
-  task do
-    # @username and @password correspond to the Hash keys provided to async.
-    args = { username: @username, password: @password }
+class ArtistsViewController < UIViewController
+  include Elevate
 
-    credentials = Elevate::HTTP.post(LOGIN_URL, args)
-    if credentials
-      UserRegistration.store(credentials.username, credentials.token)
+  def viewDidLoad
+    super
+
+    launch(:update)
+  end
+
+  task :update do
+    background do
+      response = Elevate::HTTP.get("https://example.org/artists")
+      DB.update(response)
+
+      response
     end
 
-    # Anything yielded from this block is passed to on_update
-    yield "Logged in!"
+    on_start do
+      SVProgressHUD.showWithStatus("Loading...")
+    end
 
-    # Return value of block is passed back to on_finish
-    credentials != nil
-  end
+    on_finish do |response, exception|
+      SVProgressHUD.dismiss
 
-  on_start do
-    # This block runs on the UI thread after the operation has been queued.
-    SVProgressHUD.showWithStatus("Logging In...")
-  end
-
-  on_update do |status|
-    # This block runs on the UI thread with anything the task yields
-    puts status
-  end
-
-  on_finish do |result, exception|
-    # This block runs on the UI thread after the task block has finished.
-    SVProgressHUD.dismiss
-
-    if exception == nil
-      if result
-        alert("Logged in successfully!")
-      else
-        alert("Invalid username/password!")
-      end
-    else
-      alert(exception)
+      self.artists = response
     end
   end
 end
 ```
 
-Background
------------
-Many iOS/OS X apps have fairly simple domain logic that is obscured by several programming 'taxes':
+We define a task named `update`. Within that task, we specify the work that it does using the `background` method of the DSL. As the name implies, this block runs on a background thread. Next, we specify two callback handlers: `on_start` and `on_finish`. These are run when the task starts and finishes, respectively. Because these are alwys run on the main thread, you can use them to update the UI. Finally, in `viewDidLoad`, we start the task by calling `launch`, passing the name of the task.
 
-* UI management
-* asynchronous network requests
-* I/O-heavy operations, such as storing large datasets to disk
+Notice that it is very clear what the actual work of the `update` task is: getting a list of artists from a web service, storing the results in a database, and passing the list of artists back. Thus, you should view Elevate as a DSL for a *very* common pattern for view controllers:
 
-These are necessary to ensure a good user experience, but they splinter your domain logic (that is, what your application does) through your view controller. Gross.
+1. Update the UI, telling the user you're starting some work
+2. Do the work (possibly storing it in a database)
+3. Update the UI again in response to what happened
 
-Elevate is a mini task queue for your app, much like Resque or Sidekiq. Rather than defining part of an operation to run on the UI thread, and a CPU-intensive portion on a background thread, Elevate is designed so you run the *entire* operation in the background, and receive notifications at various times. This has a nice side effect of consolidating all the interaction for a particular task to one place. The UI code is cleanly isolated from the non-UI code. When your tasks become complex, you can elect to extract them out to a service object.
+(Some tasks may not need steps 1 or 3, of course.)
 
-In a sense, Elevate is almost a control-flow library: it bends the rules of app development a bit to ensure that the unique value your application provides is as clear as possible.
+Taming Complexity
+--------
+You may have thought that Elevate seemed a bit heavy for the example code. I'd agree with you.
+
+Elevate was actually designed to handle the more complex interactions within a view controller:
+
+* **Async HTTP**: Elevate's HTTP client blocks, letting you write simple, testable I/O. Multiple HTTP requests do not suffer from the Pyramid of Doom effect. It also benefits from...
+* **Cancellation**: tasks may be aborted while they are running. (Any in-progress HTTP request is aborted.)
+* **Errors**: exceptions raised in a `background` block are reported to a callback, much like `on_finish`. Specific callbacks may be defined to handle specific exceptions.
+* **Timeouts**: tasks may be defined to only run for a maximum amount of time, after which they are aborted, and a callback is invoked.
+
+The key point here is that defining a DSL for tasks enables us to abstract away tedious and error-prone functionality that is necessary for a good user experience.
 
 Documentation
 --------
+To learn more:
+
 - [Tutorial](https://github.com/mattgreen/elevate/wiki/Tutorial) - start here
 
 - [Wiki](https://github.com/mattgreen/elevate/wiki)
+
+Requirements
+------------
+
+- iOS 5 and up or OS X
+
+- RubyMotion 2.x - Elevate pushes the limits of RubyMotion. Please ensure you have the latest version before reporting bugs!
 
 Installation
 ------------
 Update your Gemfile:
 
-    gem "elevate", "~> 0.6.0"
+    gem "elevate", "~> 0.7.0"
 
 Bundle:
 
     $ bundle install
 
-Usage
------
-
-Include the module in your view controller:
-
-```ruby
-class ArtistsSearchViewController < UIViewController
-  include Elevate
-```
-
-Launch an async task with the `async` method:
-```ruby
-@track_task = async artist: searchBar.text do
-  task do
-    response = Elevate::HTTP.get("http://example.com/artists", query: { artist: @artist })
-
-    artist = Artist.from_hash(response)
-    ArtistDB.update(artist)
-
-    response["name"]
-  end
-
-  on_start do
-    SVProgressHUD.showWithStatus("Adding...")
-  end
-
-  on_finish do |result, exception|
-    SVProgressHUD.dismiss
-  end
-end
-```
-
-If you might need to cancel the task later, call `cancel` on the object returned by `async`:
-```ruby
-@track_task.cancel
-```
-
-Timeouts
---------
-Elevate 0.6.0 includes support for timeouts. Timeouts are declared using the `timeout` method within the `async` block. They start when an operation is queued, and automatically abort the task when the duration passes. If the task takes longer than the specified duration, the `on_timeout` callback is run.
-
-Example:
-
-```ruby
-async do
-  timeout 0.1
-
-  task do
-    Elevate::HTTP.get("http://example.com/")
-  end
-
-  on_timeout do
-    puts 'timed out'
-  end
-
-  on_finish do |result, exception|
-    puts 'completed!'
-  end
-end
-
-
-```
-
-Caveats
----------
-* Must use Elevate's HTTP client instead of other iOS networking libs
-
 Inspiration
 -----------
+This method of organizing work recurs on several platforms, due to its effectiveness. I've stolen many ideas from these sources:
+
 * [Hexagonal Architecture](http://alistair.cockburn.us/Hexagonal+architecture)
-* [Android SDK's AsyncTask](http://developer.android.com/reference/android/os/AsyncTask.html)
-* Go (asynchronous IO done correctly)
+* Android: [AsyncTask](http://developer.android.com/reference/android/os/AsyncTask.html)
+* .NET: BackgroundWorker
+* Go's goroutines for simplifying asynchronous I/O
 
 License
 ---------
