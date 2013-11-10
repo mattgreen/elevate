@@ -10,16 +10,18 @@ Use Elevate to elegantly decompose tasks, and give your view controller a break.
 
 Introduction
 ------------
-Your poor, poor view controllers. They do *so* much for you, and yet you keep giving them more to do:
+Your poor, poor view controllers. They do **so** much for you, and they get rewarded with *even more* responsibilities:
 
 * Handle user input
 * Update the UI in response to that input
 * Request data from web services
 * Load/save/query your model layer
 
-Elevate is designed to assist your view controller in tackling this complexity. It does this by breaking these concerns apart in a clean fashion. Rather than lumping the unique behavior of your view controller in with the more pedestrian UI handling, Elevate organizes your domain logic (that is, what the controller actually *does*) and the UI updates together.
+In reality, view controllers attract complexity because they often act as a conceptual junk drawer of glue code. Fat controllers are major anti-pattern in Rails, yet iOS controllers are tasked with even more concerns.
 
-What do I mean? Let's look at an example.
+Elevate is your view controller's best friend, shouldering some of these burdens. It cleanly separates the unique behavior of your view controller (that is, what it is actually *meant* to do) from the above concerns, letting your view controller breathe more. Ultimately, Elevate makes your view controllers easier to understand and modify.
+
+This is a rather bold claim. Let's look at an example:
 
 ```ruby
 class ArtistsViewController < UIViewController
@@ -68,12 +70,12 @@ You may have thought that Elevate seemed a bit heavy for the example code. I'd a
 
 Elevate was actually designed to handle the more complex interactions within a view controller:
 
-* **Async HTTP**: Elevate's HTTP client blocks, letting you write simple, testable I/O. Multiple HTTP requests do not suffer from the Pyramid of Doom effect. It also benefits from...
+* **Async HTTP**: Elevate's HTTP client blocks, letting you write simple, testable I/O. Multiple HTTP requests do not suffer from the Pyramid of Doom effect, allowing you to easily understand dataflow. It also benefits from...
 * **Cancellation**: tasks may be aborted while they are running. (Any in-progress HTTP request is aborted.)
 * **Errors**: exceptions raised in a `background` block are reported to a callback, much like `on_finish`. Specific callbacks may be defined to handle specific exceptions.
 * **Timeouts**: tasks may be defined to only run for a maximum amount of time, after which they are aborted, and a callback is invoked.
 
-The key point here is that defining a DSL for tasks enables us to abstract away tedious and error-prone functionality that is necessary for a good user experience.
+The key point here is that defining a DSL for tasks enables us to **abstract away tedious and error-prone** functionality that is common to many view controllers, and necessary for a great user experience. Why re-write this code over and over?
 
 Documentation
 --------
