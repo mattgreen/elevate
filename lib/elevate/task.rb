@@ -92,8 +92,6 @@ module Elevate
     end
 
     def on_finish
-      p "on_finish"
-
       @operation.removeObserver(self, forKeyPath: "isFinished")
       @active_tasks.delete(self)
 
@@ -109,8 +107,6 @@ module Elevate
     end
 
     def on_timeout(timer)
-      p "on_timeout"
-
       @operation.timeout
     end
 
