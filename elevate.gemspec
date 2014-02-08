@@ -15,6 +15,6 @@ Gem::Specification.new do |gem|
   gem.license       = 'MIT'
   gem.version       = Elevate::VERSION
 
-  gem.add_development_dependency 'rake', '>= 0.9.0'
+  gem.add_development_dependency 'rake'
   gem.add_development_dependency 'webstub', '~> 0.6.0'
 end
