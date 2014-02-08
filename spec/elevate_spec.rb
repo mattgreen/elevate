@@ -285,7 +285,6 @@ describe Elevate do
       @controller.launch(:timeout_test)
 
       wait 0.5 do
-        p @controller.invocations
         @controller.invocations[:finish].should.not.be.nil
       end
     end
@@ -297,7 +296,6 @@ describe Elevate do
       @controller.launch(:timeout_test)
 
       wait 0.5 do
-        p @controller.invocations
         @controller.invocations[:timeout].should.not.be.nil
       end
 
