@@ -2,11 +2,12 @@ class TestController
   include Elevate
 
   def initialize
-    @invocations = ThreadsafeProxy.new({})
+    @invocations = {}
     @counter = 0
     @threads = []
     @updates = []
     @callback_args = nil
+    @completion = nil
   end
 
   attr_accessor :started
@@ -17,6 +18,7 @@ class TestController
   attr_accessor :threads
   attr_accessor :updates
   attr_accessor :callback_args
+  attr_accessor :completion
 
   task :cancellable do
     background do
@@ -119,6 +121,8 @@ class TestController
     on_finish do |result, ex|
       self.invocations[:finish] = counter
       self.counter += 1
+
+      @completion.call if @completion
     end
   end
 end
@@ -270,9 +274,10 @@ describe Elevate do
       stub_request(:get, "http://example.com/").
         to_return(body: "Hello!", content_type: "text/plain")
 
+      @controller.completion = -> { resume }
       @controller.launch(:timeout_test)
 
-      wait 0.5 do
+      wait_max 0.9 do
         @controller.invocations[:timeout].should.be.nil
         @controller.invocations[:finish].should.not.be.nil
       end
@@ -282,10 +287,10 @@ describe Elevate do
       stub_request(:get, "http://example.com/").
         to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
 
+      @controller.completion = -> { resume }
       @controller.launch(:timeout_test)
 
-      wait 0.5 do
-        p @controller
+      wait_max 0.9 do
         @controller.invocations[:finish].should.not.be.nil
       end
     end
@@ -294,10 +299,10 @@ describe Elevate do
       stub_request(:get, "http://example.com/").
         to_return(body: "Hello!", content_type: "text/plain", delay: 1.0)
 
+      @controller.completion = -> { resume }
       @controller.launch(:timeout_test)
 
-      wait 0.5 do
-        p @controller
+      wait_max 0.9 do
         @controller.invocations[:timeout].should.not.be.nil
       end
 
