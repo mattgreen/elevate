@@ -2,7 +2,7 @@ class TestController
   include Elevate
 
   def initialize
-    @invocations = {}
+    @invocations = ThreadsafeProxy.new({})
     @counter = 0
     @threads = []
     @updates = []
