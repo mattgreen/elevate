@@ -30,7 +30,8 @@ module Elevate
   def launch(name, args = {})
     raise ArgumentError, "args must be a Hash" unless args.is_a? Hash
 
-    definition = self.class.task_definitions[name.to_sym]
+    controller_class = self.class.to_s.start_with?("NSKVONotifying_") ? self.class.superclass : self.class
+    definition = controller_class.task_definitions[name.to_sym]
 
     task = Task.new(definition, self, active_tasks)
     task.start(args)
