@@ -127,6 +127,9 @@ class TestController
   end
 end
 
+class SubclassController < TestController
+end
+
 describe Elevate do
   extend WebStub::SpecHelpers
 
@@ -306,6 +309,12 @@ describe Elevate do
         @controller.invocations[:timeout].should.not.be.nil
       end
 
+    end
+  end
+
+  describe ".task_definitions" do
+    it "includes task definitions from the superclass in subclasses" do
+      SubclassController.task_definitions.should.equal TestController.task_definitions
     end
   end
 end
