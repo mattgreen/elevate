@@ -65,7 +65,7 @@ module HTTP
       @request.HTTPBody = options[:body]
       @request.HTTPMethod = method
       @request.URL = NSURL.URLWithString(url)
-      @request.setTimeoutInterval(options[:timeout_interval].to_i) if options[:timeout_interval]
+      @request.setTimeoutInterval(options[:request_timeout].to_i) if options[:request_timeout]
 
       headers = options.fetch(:headers, {})
 
