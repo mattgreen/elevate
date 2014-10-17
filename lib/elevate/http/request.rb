@@ -50,6 +50,8 @@ module HTTP
         url += "?" + URI.encode_query(options[:query])
       end
 
+      @allow_self_sign_certificate = options.fetch(:allow_self_sign_certificate, false)
+
       options[:headers] ||= {}
 
       if root = options.delete(:json)
@@ -189,6 +191,22 @@ module HTTP
       @response.url = request.URL.absoluteString
 
       request
+    end
+
+    def connection(connection, canAuthenticateAgainstProtectionSpace: protectionSpace)
+      @allow_self_sign_certificate
+    end
+
+    def connection(connection, didReceiveAuthenticationChallenge: challenge)
+      if @allow_self_sign_certificate
+        credential = NSURLCredential.credentialForTrust(challenge.protectionSpace.serverTrust)
+        challenge.sender.useCredential(
+          credential,
+          forAuthenticationChallenge:challenge
+        )
+
+        challenge.sender.continueWithoutCredentialForAuthenticationChallenge(challenge)
+      end
     end
 
     def get_authorization_header(credentials)
