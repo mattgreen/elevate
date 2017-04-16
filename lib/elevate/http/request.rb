@@ -57,6 +57,9 @@ module HTTP
       if root = options.delete(:json)
         options[:body] = NSJSONSerialization.dataWithJSONObject(root, options: 0, error: nil)
         options[:headers]["Content-Type"] = "application/json"
+      elsif root = options.delete(:xml)
+        options[:body] = root.dataUsingEncoding(NSASCIIStringEncoding)
+        options[:headers]["Content-Type"] ||= "text/xml"
       elsif root = options.delete(:form)
         options[:body] = URI.encode_www_form(root).dataUsingEncoding(NSASCIIStringEncoding)
         options[:headers]["Content-Type"] ||= "application/x-www-form-urlencoded"
